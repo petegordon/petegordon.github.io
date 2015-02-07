@@ -58,16 +58,37 @@ $( document ).ready(function() {
     var numberOfMinutes = $('#textNumberOfMinutes').val();
     startCountdown(numberOfMinutes);
   });
-  for(i=1; i<100; i++){
-    var optionToAdd = '<option>'+i+'</option>';
-    $(optionToAdd).appendTo($('#selectConfigMinutes'));
-  }
+  $('.description').click(function(event){
+    clickOnTextEdit(event.target)
+  });
+  $('html').on('blur', '.openTextEdit textarea', function(){
+    clickOffTextEdit();
+  });
 
   //Default text and countdown (first time call)
   updateEventText($('#viewConfig').find('#textConfigDesc').html());
   startCountdown(3);
 
 });
+
+function clickOffTextEdit(){
+  if($('.openTextEdit').length > 0){
+    var div = $('.openTextEdit');
+    var input = $('.openTextEdit').find('textarea');
+    div.html(input.val());
+    div.removeClass('openTextEdit');
+    $.remove(input);
+  }
+}
+function clickOnTextEdit(element){
+  clickOffTextEdit();
+  $(element).addClass('openTextEdit');
+  var innerText = $(element).html();
+  $(element).html('');
+  $(element).append('<textarea></textarea>');
+  $('.openTextEdit textarea').val(innerText);
+  $('.openTextEdit textarea').select();
+}
 function startCountdown(numberOfMinutes){
   var clock = $('.your-clock').FlipClock(numberOfMinutes*60, {
     countdown:true,
