@@ -50,10 +50,6 @@ $( document ).ready(function() {
 
   });
 
-  $('#viewConfig').find('#textConfigDesc').change(function(event){
-    updateEventText($(event.target).val());
-  });
-
   $('#viewConfig').find('#textNumberOfMinutes').change(function(event){
     var numberOfMinutes = $('#textNumberOfMinutes').val();
     startCountdown(numberOfMinutes);
@@ -65,8 +61,7 @@ $( document ).ready(function() {
     clickOffTextEdit();
   });
 
-  //Default text and countdown (first time call)
-  updateEventText($('#viewConfig').find('#textConfigDesc').html());
+  //Default countdown (first time call)
   startCountdown(3);
 
 });
@@ -75,9 +70,9 @@ function clickOffTextEdit(){
   if($('.openTextEdit').length > 0){
     var div = $('.openTextEdit');
     var input = $('.openTextEdit').find('textarea');
-    div.html(input.val());
+    var newText = input.val();
+    div.html(newText);
     div.removeClass('openTextEdit');
-    $.remove(input);
   }
 }
 function clickOnTextEdit(element){
@@ -95,9 +90,6 @@ function startCountdown(numberOfMinutes){
     clockFace: 'MinuteCounter'
   });
 }
-function updateEventText(eventDescription){
-  $('.description:not(.description-label)').html(eventDescription);
-}
 </script></head>
 
 
@@ -106,11 +98,17 @@ function updateEventText(eventDescription){
   <div id="divConfig" style="z-index:2;position: relative;float: right;">
     <div id="buttonConfig" style="float:right"><img src="http://cdn.mysitemyway.com/etc-mysitemyway/icons/legacy-previews/icons/3d-transparent-glass-icons-business/076043-3d-transparent-glass-icon-business-gears-sc37.png" style="width: 30px;height: 30px;"></div>
     <div id="viewConfig" style="display: none;">
-        <div><label>Event Description:</label><textarea type="text" id="textConfigDesc">Your Event Text goes here.</textarea></div>
         <div><label>Minutes:</label><input type="text" style="width:40px" id="textNumberOfMinutes"/></div>
     </div>
   </div>
-  <div class='your-clock'></div>
-<div class='description description-label'>Coming Up Next:</div>
-<div class='description'>Google StudyJam Video</div>
+  <div style="display:flex;flex-direction:row">
+    <div style="width:80%">
+      <div class='your-clock'></div>
+      <div class='description description-label'>Coming Up Next:</div>
+      <div class='description'>Google StudyJam Video</div>
+    </div>
+    <div style="width:20%"><img style="float:right;opacity:.55" src="images/gdg_columbus.png" /></div>
+  </div>
+
+
 </body></html>
