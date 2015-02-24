@@ -40,9 +40,11 @@ $( document ).ready(function() {
 
      // Use the API call wrapper to request the member's basic profile data
      function getProfileData() {
+       console.log("getProfileData");
          IN.API.Raw("/people/~")
          .result(function(data){console.log(data);})
            .error(function(data){console.log("error");});
+       console.log("end getProfileData");
      }
 
   });
