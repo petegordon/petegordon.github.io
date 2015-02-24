@@ -2,14 +2,15 @@
 <head>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
 <script>
+function helloFromLinkedIn(){
+  console.log("hello from Linkedin");
+}
+
 $( document ).ready(function() {
     $('.linkedinButton').click(function(){
       authorizeLinkedIn();
     });
 
-    function helloFromLinkedIn(){
-      console.log("hello from Linkedin");
-    }
     function authorizeLinkedIn(){
       $.get(
         'https://www.linkedin.com/uas/oauth2/authorization',
