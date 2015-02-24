@@ -12,6 +12,8 @@ $( document ).ready(function() {
     });
 
     function authorizeLinkedIn(){
+      IN.User.authorize(function(data){console.log('authorized callback');console.log(data);});
+      /*
       $.get(
         'https://www.linkedin.com/uas/oauth2/authorization',
         {response_type:"code",
@@ -23,6 +25,7 @@ $( document ).ready(function() {
           console.log(returnData);
         }
       );
+      */
     }
 
     $.getScript("https://platform.linkedin.com/in.js?async=true", function success() {
