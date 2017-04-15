@@ -21,16 +21,17 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 </head>
 <body>
-  <canvas id="airplaneCanvas" style="background:url('airplane.png');width:600px"></canvas>
-  <button id="btnSendThugs">Send Thugs</button>
+  <canvas id="airplaneCanvas" style="background:url('airplane.png');width:600px;height:400px"></canvas>
+  <canvas id="payPassengers" style="width:100px;height:100px;position:absolute;top:280px;left:30px"></canvas>
+  <canvas id="sendThugs" style="width:100px;height:100px;position:absolute;top:280px;left:480px"></canvas>
 </body>
 <script>
 var spriteSheet = new Image();
 spriteSheet.src = "spritesheet.png"
 console.log('load spriteSheet:'+spriteSheet.src);
 
-var airplaneCanvas = document.getElementById("airplaneCanvas")
-airplaneCanvas.addEventListener("click", function(evt){
+var payPassengers = document.getElementById("payPassengers")
+payPassengers.addEventListener("click", function(evt){
   console.log(evt);
   var visibleArray = passengerArray.filter(function(passenger){return passenger.el.style.display != 'none'})
   var passengerToMove = Math.round(Math.random()*visibleArray.length)
@@ -229,7 +230,7 @@ var thug = new Sprite({
   el:canvasThug,
   animation:Sprite.prototype.thugLeftStand
 })
-var sendThugs = document.getElementById("btnSendThugs");
+var sendThugs = document.getElementById("sendThugs");
 
 sendThugs.addEventListener("click", function(){
   console.log('sending thugs')
