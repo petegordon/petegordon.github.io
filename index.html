@@ -125,22 +125,35 @@ Sprite.prototype.updateAnimation = function(animation, callback){
   if(callback)
     this.animationEndCallback = callback
 }
-Sprite.prototype.exitPlane = function (){
+Sprite.prototype.exitPlane = function (callback){
   this.el.style.left = 120;
-  this.el.addEventListener('transitionend', function(evt){
+  var self = this;
+  this.evtListener = function(evt){
+    evt.stopPropagation();
     console.log('exited plane');
+    console.log(evt.target.id);
     console.log(evt);
     evt.target.style.opacity = 0;
     evt.target.style.display = 'none';
-  })
+    if(callback)
+      callback(self);
+    evt.target.removeEventListener('transitionend', self.evtListener)
+  }
+
+  this.el.addEventListener('transitionend', this.evtListener)
 }
 Sprite.prototype.goToSeat = function(leftPosition, callback){
   console.log(leftPosition)
   this.el.style.left = leftPosition;
-  this.el.addEventListener('transitionend', function(evt){
+  var self = this;
+  this.moveEvent = function(evt){
     console.log('walked to seat');
-    callback();
-  });
+    if(callback)
+    callback(self);
+    self.el.removeEventListener('transitionend', self.moveEvent)
+  }
+
+  this.el.addEventListener('transitionend', this.moveEvent);
 }
 
 Sprite.prototype.passengerSit = {"start":{"row":2, "col":0}, "end":{"row":2,"col":0}, "loop":false}
@@ -150,9 +163,10 @@ Sprite.prototype.passengerLeftWalk = {"start":{"row":0, "col":0}, "end":{"row":0
 Sprite.prototype.passengerRightWalk = {"start":{"row":1, "col":0}, "end":{"row":1,"col":8}, "loop":true}
 Sprite.prototype.passengerSitToStand = {"start":{"row":2, "col":0}, "end":{"row":2,"col":3}, "loop":false}
 Sprite.prototype.passengerStandToSit = {"start":{"row":3, "col":0}, "end":{"row":3,"col":3}, "loop":false}
+Sprite.prototype.passengerLeftDrag = {"start":{"row":4, "col":0}, "end":{"row":4,"col":4}, "loop":false}
 Sprite.prototype.thugLeftStand = {"start":{"row":5, "col":0}, "end":{"row":5,"col":0}, "loop":false}
 Sprite.prototype.thugLeftWalk = {"start":{"row":5, "col":0}, "end":{"row":5,"col":8}, "loop":true}
-Sprite.prototype.thugBeating = {"start":{"row":7, "col":0}, "end":{"row":7,"col":6}, "loop":true}
+Sprite.prototype.thugBeating = {"start":{"row":7, "col":0}, "end":{"row":7,"col":6}, "loop":false}
 //var canvas = document.getElementById("passengerAnimation");
 //canvas.width = 64;
 //canvas.height = 64;
@@ -198,13 +212,17 @@ console.log(Sprite.prototype.passengerSit)
 
 
 var canvasThug = document.createElement('canvas')
+canvasThug.className = 'thug';
+
+function resetThug(canvasThug){
 canvasThug.id = 'thugAnimation'
 canvasThug.width = 64
 canvasThug.height = 64
 canvasThug.style.position = 'absolute';
 canvasThug.style.left = 463;
 canvasThug.style.top = 157;
-canvasThug.className = 'thug';
+}
+resetThug(canvasThug);
 document.body.appendChild(canvasThug);
 
 var thug = new Sprite({
@@ -215,24 +233,63 @@ var sendThugs = document.getElementById("btnSendThugs");
 
 sendThugs.addEventListener("click", function(){
   console.log('sending thugs')
-  var visiblePassengers = Array.from(document.querySelectorAll('.passenger')).filter(function(el){return el.style.display != 'none'});
-  console.log(visiblePassengers)
-  var passengerIndex = Math.round(Math.random()*visiblePassengers.length)
+  var visibleArray = passengerArray.filter(function(passenger){return passenger.el.style.display != 'none'})
+
+  //var visiblePassengers = Array.from(document.querySelectorAll('.passenger')).filter(function(el){return el.style.display != 'none'});
+  //console.log(visiblePassengers)
+  var passengerIndex = Math.round(Math.random()*visibleArray.length)
   console.log(passengerIndex)
-  var passengerToBeat = visiblePassengers[passengerIndex];
+  var passengerToBeat = visibleArray[passengerIndex];
   console.log(passengerToBeat)
   //animate walking left to right (position of passenger canvas)
   thug.updateAnimation(Sprite.prototype.thugLeftWalk)
   console.log('thug walking');
   console.log(passengerToBeat);
-  thug.goToSeat(passengerToBeat.style.left, function(sprite){
-    thug.updateAnimation(Sprite.prototype.thugBeating);
+  thug.goToSeat(passengerToBeat.el.style.left, function(sprite){
+    console.log(passengerToBeat)
+    console.log('at passenger commence beating')
+    //var passengerToBeat = passengerToBeat;
+
+    thug.updateAnimation(Sprite.prototype.thugBeating, function(thugResult){
+      console.log('finished beating, drag them out')
+      thugResult.el.style.zIndex = 200;
+      passengerToBeat.el.style.zIndex = 100;
+      thugResult.animationEndCallback = undefined;
+      thugResult.updateAnimation(Sprite.prototype.thugLeftWalk)
+      thugResult.el.style.left = parseInt(thugResult.el.style.left, 10) - 80;
+
+      passengerToBeat.el.style.top = (parseInt(passengerToBeat.el.style.top, 10) + 10) + 'px'
+      passengerToBeat.updateAnimation(Sprite.prototype.passengerLeftDrag, function(sprite){
+        sprite.animationEndCallback = undefined;
+        console.log('passenger to exit')
+        sprite.exitPlane();
+      });
+      console.log('thug to exit')
+      thugResult.exitPlane(function(thugResult2){
+        console.log('thug has exited with passenger')
+
+          $(thugResult2.el).removeClass('thug');
+          thugResult2.updateAnimation(Sprite.prototype.thugLeftStand, function(thugResult3){
+            thugResult3.animationEndCallback = undefined
+            resetThug(thugResult2.el);
+            thugResult3.el.style.display = 'block';
+            thugResult3.el.style.opacity = 1;
+            $(thugResult3.el).addClass('thug');
+            //$(thugResult2.el).addClass('thug');
+            console.log(thugResult2.el)
+          })
+
+
+      });
+
+    });
   });
 
   //once transition ends
   //animate beating on passenger
 
 });
+
 /*
 var thug = new Sprite({
     context: canvasThug.getContext("2d"),
