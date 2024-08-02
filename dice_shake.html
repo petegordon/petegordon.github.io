@@ -174,7 +174,7 @@
 <script>
   let isShaking = false;
   let shakeTimeout;
-  
+
   function setDiceFace(cube, face) {
     let xDeg, yDeg;
     switch(face) {
@@ -214,7 +214,7 @@
   }
 
   function rollDice(cube, targetFace, duration) {
-    let interval = setInterval(() => randomRotate(cube), 100);
+    const interval = setInterval(() => randomRotate(cube), 100);
     setTimeout(() => {
       clearInterval(interval);
       setDiceFace(cube, targetFace);
@@ -222,8 +222,8 @@
   }
 
   function rollBothDice() {
-    var face1 = Math.floor(Math.random() * 6) + 1;
-    var face2 = Math.floor(Math.random() * 6) + 1;
+    const face1 = Math.floor(Math.random() * 6) + 1;
+    const face2 = Math.floor(Math.random() * 6) + 1;
     console.log("Rolling to faces: " + face1 + " and " + face2);
     rollDice(document.getElementById('cube1'), face1, 6000); // Rolls for 2 seconds
     rollDice(document.getElementById('cube2'), face2, 6000); // Rolls for 2 seconds
