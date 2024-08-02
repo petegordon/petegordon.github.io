@@ -60,7 +60,7 @@
   }
 
   function deviceMotionHandler(event) {
-    const shakeThreshold = 100;
+    const shakeThreshold = 50;
     const acceleration = event.accelerationIncludingGravity;
     const currentTime = new Date().getTime();
 
@@ -80,17 +80,16 @@
     const deltaZ = acceleration.z - lastZ;
 
     const speed = Math.abs(deltaX + deltaY + deltaZ) / timeDifference * 10000;
-    document.getElementById('log').innerText = 'Shaking detected Speed! '+ lastUpdate + ' ' + speed;
+    //document.getElementById('log').innerText = 'Shaking detected Speed! '+ lastUpdate + ' ' + speed;
     if (speed > shakeThreshold && !isShaking) {
-        document.getElementById('log').innerText += document.getElementById('log').innerText + '\n' + 'Shaking! '+ lastUpdate + ' ' + speed + '\n';
+      document.getElementById('log').innerText += document.getElementById('log').innerText + '\n' + 'Shaking! '+ lastUpdate + ' ' + speed + '\n';
       isShaking = true;
       rollBothDice();
+      clearTimeout(shakeTimeout);
+      shakeTimeout = setTimeout(() => {
+        isShaking = false;
+      }, 500);      
     }
-
-    clearTimeout(shakeTimeout);
-    shakeTimeout = setTimeout(() => {
-      isShaking = false;
-    }, 500);
 
     lastX = acceleration.x;
     lastY = acceleration.y;
