@@ -80,9 +80,8 @@
     const deltaZ = acceleration.z - lastZ;
 
     const speed = Math.abs(deltaX + deltaY + deltaZ) / timeDifference * 10000;
-
+    document.getElementById('log').innerText = 'Shaking detected Speed! '+ lastUpdate + ' ' + speed;
     if (speed > shakeThreshold && !isShaking) {
-      document.getElementById('log').innerText = 'Shaking detected! '+ lastUpdate;
       isShaking = true;
       rollBothDice();
     }
