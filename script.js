@@ -114,5 +114,5 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('start').addEventListener('click', initializeMotionEvent);
+    initializeMotionEvent();
   });
