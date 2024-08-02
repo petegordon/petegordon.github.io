@@ -55,12 +55,12 @@
     const face1 = Math.floor(Math.random() * 6) + 1;
     const face2 = Math.floor(Math.random() * 6) + 1;
     console.log("Rolling to faces: " + face1 + " and " + face2);
-    rollDice(document.getElementById('cube1'), face1, 6000);
-    rollDice(document.getElementById('cube2'), face2, 6000);
+    rollDice(document.getElementById('cube1'), face1, 500);
+    rollDice(document.getElementById('cube2'), face2, 500);
   }
 
   function deviceMotionHandler(event) {
-    const shakeThreshold = 15;
+    const shakeThreshold = 100;
     const acceleration = event.accelerationIncludingGravity;
     const currentTime = new Date().getTime();
 
@@ -82,6 +82,7 @@
     const speed = Math.abs(deltaX + deltaY + deltaZ) / timeDifference * 10000;
     document.getElementById('log').innerText = 'Shaking detected Speed! '+ lastUpdate + ' ' + speed;
     if (speed > shakeThreshold && !isShaking) {
+        document.getElementById('log').innerText += document.getElementById('log').innerText + '\n' + 'Shaking! '+ lastUpdate + ' ' + speed + '\n';
       isShaking = true;
       rollBothDice();
     }
@@ -89,7 +90,7 @@
     clearTimeout(shakeTimeout);
     shakeTimeout = setTimeout(() => {
       isShaking = false;
-    }, 1000);
+    }, 500);
 
     lastX = acceleration.x;
     lastY = acceleration.y;
