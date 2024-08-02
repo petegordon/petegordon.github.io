@@ -97,6 +97,7 @@
   }
 
   function initializeMotionEvent() {
+    document.getElementById('log').innerText = 'Loaded: ' + new Date().getTime();
     if (typeof DeviceMotionEvent.requestPermission === 'function') {
       DeviceMotionEvent.requestPermission()
         .then(permissionState => {
