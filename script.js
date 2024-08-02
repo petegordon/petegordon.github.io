@@ -60,7 +60,7 @@
   }
 
   function deviceMotionHandler(event) {
-    const shakeThreshold = 50;
+    const shakeThreshold = 200;
     const acceleration = event.accelerationIncludingGravity;
     const currentTime = new Date().getTime();
 
