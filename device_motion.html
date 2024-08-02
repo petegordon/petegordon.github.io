@@ -1,0 +1,121 @@
+<script>
+  function deviceMotionHandler(event) {
+    const shakeThreshold = 15;
+    const acceleration = event.accelerationIncludingGravity;
+    const currentTime = new Date().getTime();
+
+    if (!lastUpdate) {
+      lastUpdate = currentTime;
+      lastX = acceleration.x;
+      lastY = acceleration.y;
+      lastZ = acceleration.z;
+      return;
+    }
+
+    const timeDifference = currentTime - lastUpdate;
+    lastUpdate = currentTime;
+
+    const deltaX = acceleration.x - lastX;
+    const deltaY = acceleration.y - lastY;
+    const deltaZ = acceleration.z - lastZ;
+
+    const speed = Math.abs(deltaX + deltaY + deltaZ) / timeDifference * 10000;
+
+    if (speed > shakeThreshold && !isShaking) {
+      isShaking = true;
+      rollBothDice();
+    }
+
+    clearTimeout(shakeTimeout);
+    shakeTimeout = setTimeout(() => {
+      isShaking = false;
+    }, 1000);
+
+    lastX = acceleration.x;
+    lastY = acceleration.y;
+    lastZ = acceleration.z;
+  }
+
+  function initializeMotionEvent() {
+    if (typeof DeviceMotionEvent.requestPermission === 'function') {
+      DeviceMotionEvent.requestPermission()
+        .then(permissionState => {
+          if (permissionState === 'granted') {
+            window.addEventListener('devicemotion', deviceMotionHandler, false);
+          } else {
+            alert('Device Motion permission denied.');
+          }
+        })
+        .catch(console.error);
+    } else {
+      window.addEventListener('devicemotion', deviceMotionHandler, false);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('start').addEventListener('click', initializeMotionEvent);
+  });
+
+  let isShaking = false;
+  let shakeTimeout;
+  let lastUpdate = 0;
+  let lastX = 0;
+  let lastY = 0;
+  let lastZ = 0;
+
+  function setDiceFace(cube, face) {
+    let xDeg, yDeg;
+    switch(face) {
+      case 1:
+        xDeg = 0; yDeg = 0;
+        break;
+      case 2:
+        xDeg = 0; yDeg = 180;
+        break;
+      case 3:
+        xDeg = 0; yDeg = -90;
+        break;
+      case 4:
+        xDeg = 0; yDeg = 90;
+        break;
+      case 5:
+        xDeg = -90; yDeg = 0;
+        break;
+      case 6:
+        xDeg = 90; yDeg = 0;
+        break;
+      default:
+        console.log("Invalid face number");
+        return;
+    }
+    cube.style.transform = 'rotateX('+xDeg+'deg) rotateY('+yDeg+'deg)';
+  }
+
+  function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function randomRotate(cube) {
+    let xRand = getRandomInt(0, 360);
+    let yRand = getRandomInt(0, 360);
+    cube.style.transform = 'rotateX('+xRand+'deg) rotateY('+yRand+'deg)';
+  }
+
+  function rollDice(cube, targetFace, duration) {
+    const interval = setInterval(() => randomRotate(cube), 100);
+    setTimeout(() => {
+      clearInterval(interval);
+      setDiceFace(cube, targetFace);
+    }, duration);
+  }
+
+  function rollBothDice() {
+    const face1 = Math.floor(Math.random() * 6) + 1;
+    const face2 = Math.floor(Math.random() * 6) + 1;
+    console.log("Rolling to faces: " + face1 + " and " + face2);
+    rollDice(document.getElementById('cube1'), face1, 6000); // Rolls for 2 seconds
+    rollDice(document.getElementById('cube2'), face2, 6000); // Rolls for 2 seconds
+  }
+</script>
+
+<button id="start">Enable Device Motion</button>
