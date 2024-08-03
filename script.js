@@ -97,18 +97,23 @@
   }
 
   function initializeMotionEvent() {
-    document.getElementById('log').innerText = 'Loaded: ' + new Date().getTime();
+    document.getElementById('log').innerText = 'Loaded 9: ' + new Date().getTime();
     if (typeof DeviceMotionEvent.requestPermission === 'function') {
       alert('about to request permission for Device Motion...');
       DeviceMotionEvent.requestPermission()
         .then(permissionState => {
+            alert(permissionState)
           if (permissionState === 'granted') {
             window.addEventListener('devicemotion', deviceMotionHandler, false);
           } else {
             alert('Device Motion permission denied.');
           }
         })
-        .catch(console.error);
+        .catch( (error) =>
+            {
+                alert("ERROR:"  + error)
+            }
+        );
     } else {
       alert('about to add Event Listener for Device Motion...');
       window.addEventListener('devicemotion', deviceMotionHandler, false);
