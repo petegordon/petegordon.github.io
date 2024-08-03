@@ -99,6 +99,7 @@
   function initializeMotionEvent() {
     document.getElementById('log').innerText = 'Loaded: ' + new Date().getTime();
     if (typeof DeviceMotionEvent.requestPermission === 'function') {
+      alert('about to request permission for Device Motion...');
       DeviceMotionEvent.requestPermission()
         .then(permissionState => {
           if (permissionState === 'granted') {
@@ -109,6 +110,7 @@
         })
         .catch(console.error);
     } else {
+      alert('about to add Event Listener for Device Motion...');
       window.addEventListener('devicemotion', deviceMotionHandler, false);
     }
   }
