@@ -97,7 +97,7 @@
   }
 
   function initializeMotionEvent() {
-    document.getElementById('log').innerText = 'Loaded 9: ' + new Date().getTime();
+    document.getElementById('log').innerText = 'Loaded 10: ' + new Date().getTime();
     if (typeof DeviceMotionEvent.requestPermission === 'function') {
       alert('about to request permission for Device Motion...');
       DeviceMotionEvent.requestPermission()
@@ -121,5 +121,5 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    initializeMotionEvent();
+    document.getElementById('start').addEventListener('click', initializeMotionEvent);
   });
