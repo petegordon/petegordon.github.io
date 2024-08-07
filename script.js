@@ -60,7 +60,7 @@
   }
 
   function deviceMotionHandler(event) {
-    const shakeThreshold = 800;
+    const shakeThreshold = 1200;
     const acceleration = event.accelerationIncludingGravity;
     const currentTime = new Date().getTime();
 
@@ -97,7 +97,7 @@
   }
 
   function initializeMotionEvent() {
-    document.getElementById('log').innerText = 'Loaded 10: ' + new Date().getTime();
+    document.getElementById('log').innerText = 'Loaded 12: ' + new Date().getTime();
     if (typeof DeviceMotionEvent.requestPermission === 'function') {
       alert('about to request permission for Device Motion...');
       DeviceMotionEvent.requestPermission()
