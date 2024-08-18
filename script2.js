@@ -155,10 +155,13 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    alert('DOMContentLoaded');
     document.getElementById('start').addEventListener('click', initializeMotionEvent);
+
   });
 
   async function checkPermissionStatus() {
+    alert('checkPermissionStatus');
     try {
         const status = await navigator.permissions.query({ name: 'accelerometer' });
         alert(status.state);
@@ -182,7 +185,9 @@
   }  
   // Add this script to your JavaScript file or in a <script> tag in the HTML
   document.querySelector('.overlay').addEventListener('click', function() {
+    alert("Touched: ");
     let permissioned = checkPermissionStatus();
+    alert("Permissioned: " + permissioned);
     if (!permissioned && typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
         DeviceMotionEvent.requestPermission().then(permissionState => {
             if (permissionState === 'granted') {
