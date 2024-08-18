@@ -86,6 +86,16 @@
     const speed = Math.abs(deltaX + deltaY + deltaZ) / timeDifference * 10000;
 
     if (speed > shakeThreshold) {
+        if (deltaX > deltaY && deltaX > deltaZ) {
+            document.getElementById('log').innerText += 'X axis shake detected\n';
+        }
+        if (deltaY > deltaX && deltaY > deltaZ) {
+            document.getElementById('log').innerText += 'Y axis shake detected\n';
+        }
+        if (deltaZ > deltaX && deltaZ > deltaY) {
+            document.getElementById('log').innerText += 'Z axis shake detected\n';
+        } 
+        document.getElementById('log').innerText += 'speed greater than threshold! ' + lastUpdate + ' ' + speed + '\n';      
         if (!shakeStarted) {
             shakeStarted = true;
             lastShakeTime = currentTime;
@@ -95,8 +105,7 @@
             if ((directionChange > 0 && !shakeDirectionChanged) || (directionChange < 0 && shakeDirectionChanged)) {
                 shakeDirectionChanged = !shakeDirectionChanged;
 
-                if (shakeDirectionChanged && (currentTime - lastShakeTime) < 300) {
-                    document.getElementById('log').innerText += 'Full Shake Detected! ' + lastUpdate + ' ' + speed + '\n';
+                if (shakeDirectionChanged && (currentTime - lastShakeTime) < 300) {                    
                     isShaking = true;
                     rollBothDice();
 
