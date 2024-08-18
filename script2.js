@@ -5,6 +5,10 @@
   let lastY = 0;
   let lastZ = 0;
 
+  let shakeStarted = false;
+  let shakeDirectionChanged = false;
+  let lastShakeTime = 0;
+  
   function setDiceFace(cube, face) {
     let xDeg, yDeg;
     switch(face) {
@@ -81,58 +85,34 @@
 
     const speed = Math.abs(deltaX + deltaY + deltaZ) / timeDifference * 10000;
 
-    // Track direction changes
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > Math.abs(deltaZ)) {
-        // Horizontal shake detected
-        if (deltaX > 0 && lastDirectionX <= 0) {
-            // Rightward movement detected after a leftward movement
-            directionChangedX = true;
-        } else if (deltaX < 0 && lastDirectionX >= 0) {
-            // Leftward movement detected after a rightward movement
-            directionChangedX = true;
+    if (speed > shakeThreshold) {
+        if (!shakeStarted) {
+            shakeStarted = true;
+            lastShakeTime = currentTime;
+        } else {
+            const directionChange = Math.abs(deltaX) > Math.abs(deltaY) ? deltaX : deltaY;
+
+            if ((directionChange > 0 && !shakeDirectionChanged) || (directionChange < 0 && shakeDirectionChanged)) {
+                shakeDirectionChanged = !shakeDirectionChanged;
+
+                if (shakeDirectionChanged && (currentTime - lastShakeTime) < 300) {
+                    document.getElementById('log').innerText += 'Full Shake Detected! ' + lastUpdate + ' ' + speed + '\n';
+                    isShaking = true;
+                    rollBothDice();
+
+                    shakeStarted = false;
+                    shakeDirectionChanged = false;
+
+                    clearTimeout(shakeTimeout);
+                    shakeTimeout = setTimeout(() => {
+                        isShaking = false;
+                    }, 500);
+                }
+            }
         }
-        lastDirectionX = deltaX;
-    }
-
-    if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > Math.abs(deltaZ)) {
-        // Vertical shake detected
-        if (deltaY > 0 && lastDirectionY <= 0) {
-            // Upward movement detected after a downward movement
-            directionChangedY = true;
-        } else if (deltaY < 0 && lastDirectionY >= 0) {
-            // Downward movement detected after an upward movement
-            directionChangedY = true;
-        }
-        lastDirectionY = deltaY;
-    }
-
-    if (Math.abs(deltaZ) > Math.abs(deltaX) && Math.abs(deltaZ) > Math.abs(deltaY)) {
-        // Forward-backward shake detected
-        if (deltaZ > 0 && lastDirectionZ <= 0) {
-            // Forward movement detected after a backward movement
-            directionChangedZ = true;
-        } else if (deltaZ < 0 && lastDirectionZ >= 0) {
-            // Backward movement detected after a forward movement
-            directionChangedZ = true;
-        }
-        lastDirectionZ = deltaZ;
-    }
-
-    // Trigger only after a full shake (both directions detected)
-    if (speed > shakeThreshold && directionChangedX && directionChangedY && directionChangedZ && !isShaking) {
-        document.getElementById('log').innerText += 'Full Shake Detected! ' + lastUpdate + ' ' + speed + '\n';
-        isShaking = true;
-        rollBothDice();
-
-        // Reset the direction change flags after the shake
-        directionChangedX = false;
-        directionChangedY = false;
-        directionChangedZ = false;
-
-        clearTimeout(shakeTimeout);
-        shakeTimeout = setTimeout(() => {
-            isShaking = false;
-        }, 500);
+    } else if (currentTime - lastShakeTime > 300) {
+        shakeStarted = false;
+        shakeDirectionChanged = false;
     }
 
     lastX = acceleration.x;
