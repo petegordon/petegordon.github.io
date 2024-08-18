@@ -157,3 +157,48 @@
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('start').addEventListener('click', initializeMotionEvent);
   });
+
+  async function checkPermissionStatus() {
+    try {
+        const status = await navigator.permissions.query({ name: 'accelerometer' });
+        alert(status.state);
+        if (status.state === 'granted') {
+            // Permission has already been granted
+            window.addEventListener('devicemotion', deviceMotionHandler);
+            return true;
+        } else if (status.state === 'denied') {
+            // Permission was denied, can't access devicemotion
+            alert('Motion sensor access is denied.');
+            return false;
+        } else {
+            // Permission is not yet requested or user decision is unknown
+            // You might still need to request it interactively
+            alert('Motion sensor permission is not granted. Please click the button to enable it.');
+            return false;
+        }
+    } catch (error) {
+        console.log('Permission check failed:', error);
+    }
+  }  
+  // Add this script to your JavaScript file or in a <script> tag in the HTML
+  document.querySelector('.overlay').addEventListener('click', function() {
+    let permissioned = checkPermissionStatus();
+    if (!permissioned && typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        DeviceMotionEvent.requestPermission().then(permissionState => {
+            if (permissionState === 'granted') {
+                window.addEventListener('devicemotion', deviceMotionHandler);
+            } else {
+                alert('Device Motion permission denied.');
+            }
+        }).catch((error) =>
+          {
+            console.log("ERROR:" + error);
+            alert("ERROR:" + error);
+          }          
+        );
+    } else {
+        window.addEventListener('devicemotion', deviceMotionHandler);
+    }    
+    this.classList.add('hidden');
+
+  });
