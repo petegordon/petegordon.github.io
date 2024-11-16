@@ -106,7 +106,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.11</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.12</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -194,6 +194,7 @@
         
         let isShaking = false;
         let numberOfShakes = 0;
+        let maxMotion = 0;
         let lastX = 0;
         let lastY = 0;
         let lastZ = 0;
@@ -205,7 +206,7 @@
         const dice2 = document.getElementById('dice2');
 
         // Update debug display
-        debugDiv.textContent = `Motion: ____ Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity}`;
+        debugDiv.textContent = `Motion: ____ Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity} Max Motion: ${maxMotion}`;
         
         // Initially hide the message
         messageElement.classList.add('hidden');
@@ -254,8 +255,11 @@
             const deltaZ = Math.abs(z - lastZ);
             const totalMotion = deltaX + deltaY + deltaZ;
 
+            if (totalMotion > maxMotion) {
+                maxMotion = totalMotion
+            }
             // Update debug display
-            debugDiv.textContent = `Motion: ${deltaX} ${deltaY} ${deltaX} ${totalMotion.toFixed(2)} Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity}`;
+            debugDiv.textContent = `Motion: ${deltaX} ${deltaY} ${deltaX} ${totalMotion.toFixed(2)} Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity} Max Motion: ${maxMotion}`;
             
             if (totalMotion > shakeSensitivity) {
                 debugMessageDiv.textContent = `Motion Registered`;
