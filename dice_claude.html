@@ -106,7 +106,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.13</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.14</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -202,6 +202,7 @@
         let lastY = 0;
         let lastZ = 0;
         const shakeSensitivity = 15;
+        const timeSensitivity = 500;
         let shakeTimeout;
         const permissionButton = document.getElementById('permissionButton');
         const messageElement = document.querySelector('.message');
@@ -241,6 +242,8 @@
             }, 50);
         }
 
+        let lastFullMotionTime = null
+        
         function handleMotion(event) {
             const x = event.accelerationIncludingGravity.x;
             const y = event.accelerationIncludingGravity.y;
@@ -257,30 +260,36 @@
             const deltaY = Math.abs(y - lastY);
             const deltaZ = Math.abs(z - lastZ);
             const totalMotion = deltaX + deltaY + deltaZ;
-
+            const currentTime = Date.now();
+            if (lastFullMotionTime == null){
+                lastFullMotionTime = currentTime
+            }
+            
             if (totalMotion > maxMotion) {
                 maxMotion = totalMotion
             }
             // Update debug display
-            debugDiv.textContent = `Motion: ${deltaX} ${deltaY} ${deltaX} ${totalMotion.toFixed(2)} Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity} Max Motion: ${maxMotion}`;
-        
-            // If enough motion, start rolling
-            if (totalMotion > 2.5) {
-                if (!isShaking) {
-                    isShaking = true;
-                    messageElement.textContent = 'Rolling...';
-                    dice1.classList.add('rolling');
-                    dice2.classList.add('rolling');
-                }
-            } 
-            // If motion is low enough, stop rolling
-            else if (totalMotion < 0.5) {
-                if (isShaking) {
-                    isShaking = false;
-                    dice1.classList.remove('rolling');
-                    dice2.classList.remove('rolling');
-                    rollDice();
-                    messageElement.textContent = 'Shake your device to roll the dice!';
+            debugDiv.textContent = `Motion: ${deltaX} ${deltaY} ${deltaX} ${totalMotion.toFixed(2)} Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity} Max Motion: ${maxMotion} Motion Time: ${((lastFullMotionTime - currentTime) > timeSensitivity)}`;
+
+            // If enough time passed and enough motion, start rolling or stop motion
+            if ((lastFullMotionTime - currentTime) > timeSensitivity) {
+                if (totalMotion > 2.5) {
+                    if (!isShaking && fullMotionTime) {
+                        isShaking = true;
+                        messageElement.textContent = 'Rolling...';
+                        dice1.classList.add('rolling');
+                        dice2.classList.add('rolling');
+                    }
+                } 
+                // If motion is low enough, stop rolling
+                else if (totalMotion < 0.5) {
+                    if (isShaking) {
+                        isShaking = false;
+                        dice1.classList.remove('rolling');
+                        dice2.classList.remove('rolling');
+                        rollDice();
+                        messageElement.textContent = 'Shake your device to roll the dice!';
+                    }
                 }
             }
 
