@@ -106,7 +106,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.10</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.11</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -185,8 +185,11 @@
 
         // Add this at the start of your JavaScript:
         const debugDiv = document.createElement('div');
+        const debugMessageDiv = document.createElement('div');
         debugDiv.style.cssText = 'position: fixed; bottom: 10px; left: 10px; color: white; font-size: 12px; font-family: monospace;';
+        debugMessageDiv.style.cssText = 'position: fixed; bottom: 10px; left: 10px; color: white; font-size: 12px; font-family: monospace;';
         document.body.appendChild(debugDiv);
+        document.body.appendChild(debugMessageDiv);
 
         
         let isShaking = false;
@@ -252,9 +255,10 @@
             const totalMotion = deltaX + deltaY + deltaZ;
 
             // Update debug display
-            debugDiv.textContent = `Motion: ${totalMotion.toFixed(2)} Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity}`;
+            debugDiv.textContent = `Motion: ${deltaX} ${deltaY} ${deltaX} ${totalMotion.toFixed(2)} Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity}`;
             
             if (totalMotion > shakeSensitivity) {
+                debugMessageDiv.textContent = `Motion Registered`;
                 if (!isShaking) {
                     isShaking = true;
                     numberOfShakes++
@@ -264,6 +268,7 @@
                 }
                 clearTimeout(shakeTimeout);
             } else if (isShaking && totalMotion < shakeSensitivity/2) {
+                debugMessageDiv.textContent = `NO Motion`;
                 // Only trigger stop if motion is significantly low
                 clearTimeout(shakeTimeout);
                 shakeTimeout = setTimeout(() => {
