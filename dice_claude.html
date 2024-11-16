@@ -36,6 +36,25 @@
             transition: transform 1.5s ease-out;
         }
 
+        .dice.shaking {
+            transition: transform 0.1s linear;
+            animation: shake 0.1s infinite;
+        }
+
+        @keyframes shake {
+            0% { transform: translate(2px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(0px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(2px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(2px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
         .face {
             position: absolute;
             width: 100px;
@@ -194,6 +213,8 @@
         let shakeTimeout;
         const permissionButton = document.getElementById('permissionButton');
         const messageElement = document.querySelector('.message');
+        const dice1 = document.getElementById('dice1');
+        const dice2 = document.getElementById('dice2');
 
         // Initially hide the message
         messageElement.classList.add('hidden');
@@ -211,8 +232,9 @@
         }
 
         function rollDice() {
-            const dice1 = document.getElementById('dice1');
-            const dice2 = document.getElementById('dice2');
+            // Remove shaking class to allow for smooth final rotation
+            dice1.classList.remove('shaking');
+            dice2.classList.remove('shaking');
             
             const rotation1 = getRandomRotation();
             const rotation2 = getRandomRotation();
@@ -241,6 +263,9 @@
                 if (!isShaking) {
                     isShaking = true;
                     messageElement.textContent = 'Rolling...';
+                    // Add shaking animation class
+                    dice1.classList.add('shaking');
+                    dice2.classList.add('shaking');
                 }
                 clearTimeout(shakeTimeout);
                 shakeTimeout = setTimeout(() => {
