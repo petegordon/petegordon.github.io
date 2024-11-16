@@ -263,26 +263,25 @@
             }
             // Update debug display
             debugDiv.textContent = `Motion: ${deltaX} ${deltaY} ${deltaX} ${totalMotion.toFixed(2)} Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity} Max Motion: ${maxMotion}`;
-            
-            if (totalMotion > shakeSensitivity) {
-                debugMessageDiv.textContent = `Motion Registered`;
+        
+            // If enough motion, start rolling
+            if (totalMotion > 2.5) {
                 if (!isShaking) {
                     isShaking = true;
-                    numberOfShakes++
                     messageElement.textContent = 'Rolling...';
                     dice1.classList.add('rolling');
                     dice2.classList.add('rolling');
                 }
-                clearTimeout(shakeTimeout);
-            } else if (isShaking && totalMotion < shakeSensitivity/2) {
-                debugMessageDiv.textContent = `NO Motion`;
-                // Only trigger stop if motion is significantly low
-                clearTimeout(shakeTimeout);
-                shakeTimeout = setTimeout(() => {
+            } 
+            // If motion is low enough, stop rolling
+            else if (totalMotion < 0.5) {
+                if (isShaking) {
                     isShaking = false;
+                    dice1.classList.remove('rolling');
+                    dice2.classList.remove('rolling');
                     rollDice();
                     messageElement.textContent = 'Shake your device to roll the dice!';
-                }, 250);
+                }
             }
 
         
