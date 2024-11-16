@@ -106,7 +106,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.5</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.6</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -223,44 +223,47 @@
             }, 50);
         }
 
-        function handleMotion(event) {
-            const x = event.accelerationIncludingGravity.x;
-            const y = event.accelerationIncludingGravity.y;
-            const z = event.accelerationIncludingGravity.z;
+function handleMotion(event) {
+    const x = event.accelerationIncludingGravity.x;
+    const y = event.accelerationIncludingGravity.y;
+    const z = event.accelerationIncludingGravity.z;
 
-            if (!lastX) {
-                lastX = x;
-                lastY = y;
-                lastZ = z;
-                return;
-            }
+    if (!lastX) {
+        lastX = x;
+        lastY = y;
+        lastZ = z;
+        return;
+    }
 
-            const deltaX = Math.abs(x - lastX);
-            const deltaY = Math.abs(y - lastY);
-            const deltaZ = Math.abs(z - lastZ);
+    const deltaX = Math.abs(x - lastX);
+    const deltaY = Math.abs(y - lastY);
+    const deltaZ = Math.abs(z - lastZ);
 
-            if (deltaX + deltaY + deltaZ > shakeSensitivity) {
-                if (!isShaking) {
-                    isShaking = true;
-                    messageElement.textContent = 'Rolling...';
-                    // Add rolling animation class
-                    dice1.classList.add('rolling');
-                    dice2.classList.add('rolling');
-                }
-                clearTimeout(shakeTimeout);
-                shakeTimeout = setTimeout(() => {
-                    if (isShaking) {
-                        isShaking = false;
-                        rollDice();
-                        messageElement.textContent = 'Shake your device to roll the dice!';
-                    }
-                }, 500);
-            }
-
-            lastX = x;
-            lastY = y;
-            lastZ = z;
+    if (deltaX + deltaY + deltaZ > shakeSensitivity) {
+        if (!isShaking) {
+            isShaking = true;
+            messageElement.textContent = 'Rolling...';
+            dice1.classList.add('rolling');
+            dice2.classList.add('rolling');
         }
+        // Reset the timeout each time motion is detected
+        clearTimeout(shakeTimeout);
+    } else {
+        // Only start the timeout when motion drops below threshold
+        if (isShaking) {
+            clearTimeout(shakeTimeout);
+            shakeTimeout = setTimeout(() => {
+                isShaking = false;
+                rollDice();
+                messageElement.textContent = 'Shake your device to roll the dice!';
+            }, 250); // Reduced from 500ms to 250ms for faster response
+        }
+    }
+
+    lastX = x;
+    lastY = y;
+    lastZ = z;
+}
 
         function initializeMotionDetection() {
             if (typeof DeviceMotionEvent.requestPermission === 'function') {
