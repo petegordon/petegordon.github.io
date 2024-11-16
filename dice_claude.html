@@ -17,15 +17,11 @@
             overflow: hidden;
         }
 
-        .container {
-            perspective: 1000px;
-            padding: 20px;
-        }
-
         .dice-container {
             display: flex;
             gap: 40px;
             margin: 20px;
+            perspective: 1000px;
         }
 
         .dice {
@@ -36,23 +32,18 @@
             transition: transform 1.5s ease-out;
         }
 
-        .dice.shaking {
-            transition: transform 0.1s linear;
-            animation: shake 0.1s infinite;
+        .dice.rolling {
+            transition: transform 0.2s linear;
+            animation: roll 0.6s linear infinite;
         }
 
-        @keyframes shake {
-            0% { transform: translate(2px, 1px) rotate(0deg); }
-            10% { transform: translate(-1px, -2px) rotate(-1deg); }
-            20% { transform: translate(-3px, 0px) rotate(1deg); }
-            30% { transform: translate(0px, 2px) rotate(0deg); }
-            40% { transform: translate(1px, -1px) rotate(1deg); }
-            50% { transform: translate(-1px, 2px) rotate(-1deg); }
-            60% { transform: translate(-3px, 1px) rotate(0deg); }
-            70% { transform: translate(2px, 1px) rotate(-1deg); }
-            80% { transform: translate(-1px, -1px) rotate(1deg); }
-            90% { transform: translate(2px, 2px) rotate(0deg); }
-            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        @keyframes roll {
+            0% { 
+                transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); 
+            }
+            100% { 
+                transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg);
+            }
         }
 
         .face {
@@ -129,7 +120,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.2</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.3</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -232,15 +223,18 @@
         }
 
         function rollDice() {
-            // Remove shaking class to allow for smooth final rotation
-            dice1.classList.remove('shaking');
-            dice2.classList.remove('shaking');
+            // Remove rolling class to allow for smooth final rotation
+            dice1.classList.remove('rolling');
+            dice2.classList.remove('rolling');
             
             const rotation1 = getRandomRotation();
             const rotation2 = getRandomRotation();
             
-            dice1.style.transform = `rotateX(${rotation1[0]}deg) rotateY(${rotation1[1]}deg) rotateZ(${rotation1[2]}deg)`;
-            dice2.style.transform = `rotateX(${rotation2[0]}deg) rotateY(${rotation2[1]}deg) rotateZ(${rotation2[2]}deg)`;
+            // Add a small delay to ensure the rolling animation has stopped
+            setTimeout(() => {
+                dice1.style.transform = `rotateX(${rotation1[0]}deg) rotateY(${rotation1[1]}deg) rotateZ(${rotation1[2]}deg)`;
+                dice2.style.transform = `rotateX(${rotation2[0]}deg) rotateY(${rotation2[1]}deg) rotateZ(${rotation2[2]}deg)`;
+            }, 50);
         }
 
         function handleMotion(event) {
@@ -263,9 +257,9 @@
                 if (!isShaking) {
                     isShaking = true;
                     messageElement.textContent = 'Rolling...';
-                    // Add shaking animation class
-                    dice1.classList.add('shaking');
-                    dice2.classList.add('shaking');
+                    // Add rolling animation class
+                    dice1.classList.add('rolling');
+                    dice2.classList.add('rolling');
                 }
                 clearTimeout(shakeTimeout);
                 shakeTimeout = setTimeout(() => {
