@@ -106,7 +106,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.9</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.10</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -187,8 +187,7 @@
         const debugDiv = document.createElement('div');
         debugDiv.style.cssText = 'position: fixed; bottom: 10px; left: 10px; color: white; font-size: 12px; font-family: monospace;';
         document.body.appendChild(debugDiv);
-        // Update debug display
-        debugDiv.textContent = `Motion: ${totalMotion.toFixed(2)} Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity}`;
+
         
         let isShaking = false;
         let numberOfShakes = 0;
@@ -202,6 +201,9 @@
         const dice1 = document.getElementById('dice1');
         const dice2 = document.getElementById('dice2');
 
+        // Update debug display
+        debugDiv.textContent = `Motion: ____ Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity}`;
+        
         // Initially hide the message
         messageElement.classList.add('hidden');
 
