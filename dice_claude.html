@@ -106,7 +106,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.7</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.8</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -182,6 +182,12 @@
     </div>
 
     <script>
+
+        // Add this at the start of your JavaScript:
+        const debugDiv = document.createElement('div');
+        debugDiv.style.cssText = 'position: fixed; bottom: 10px; left: 10px; color: white; font-size: 12px; font-family: monospace;';
+        document.body.appendChild(debugDiv);
+        
         let isShaking = false;
         let lastX = 0;
         let lastY = 0;
@@ -257,6 +263,10 @@
                     messageElement.textContent = 'Shake your device to roll the dice!';
                 }, 250);
             }
+
+            // Update debug display
+            debugDiv.textContent = `Motion: ${totalMotion.toFixed(2)} Shaking: ${isShaking} Threshold: ${shakeSensitivity}`;
+
         
             lastX = x;
             lastY = y;
