@@ -1,4 +1,43 @@
-/* ... keep all CSS up to .face the same ... */
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    background: linear-gradient(135deg, #1a2a3a, #2c3e50);
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+}
+
+.dice-container {
+    display: flex;
+    gap: 40px;
+    margin: 20px;
+    perspective: 1000px;
+}
+
+.dice {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    transform-style: preserve-3d;
+    transition: transform 1.5s ease-out;
+}
+
+.dice.rolling {
+    transition: transform 0.2s linear;
+    animation: roll 0.6s linear infinite;
+}
+
+@keyframes roll {
+    0% { 
+        transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); 
+    }
+    100% { 
+        transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg);
+    }
+}
 
 .face {
     width: 100px;
@@ -22,11 +61,11 @@
 .face::after {
     content: '';
     position: absolute;
-    inset: -1px;  /* Slightly larger to cover gaps */
+    inset: -1px;
     border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: 15px;
     pointer-events: none;
-    background: #c11b1b;  /* Same as face background */
+    background: #c11b1b;
     z-index: -1;
 }
 
@@ -41,7 +80,7 @@
     position: relative;
     justify-self: center;
     align-self: center;
-    z-index: 1;  /* Keep dots above the background */
+    z-index: 1;
 }
 
 .dot::after {
@@ -112,4 +151,29 @@
     transition: background 0.3s;
 }
 
-/* ... keep rest of CSS the same ... */
+.message {
+    color: white;
+    font-size: 1.2em;
+    margin: 20px;
+    text-align: center;
+}
+
+.permission-button {
+    padding: 12px 24px;
+    font-size: 1.1em;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 20px;
+    transition: background 0.3s;
+}
+
+.permission-button:hover {
+    background: #2980b9;
+}
+
+.hidden {
+    display: none;
+}
