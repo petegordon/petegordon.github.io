@@ -105,7 +105,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.39</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.40</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -291,6 +291,7 @@ function handleMotion(event) {
     }
 
     lastFullMotionTimeSpan = currentTime - lastFullMotionTime;
+    let motionAndTime = lastFullMotionTimeSpan > timeSensitivityToShake;
 
     // Update debug display
     debugDiv.textContent = `
@@ -308,41 +309,39 @@ Total Motion: ${totalMotion.toFixed(2)}
 Number of Shakes: ${numberOfShakes}
 Is Shaking: ${isShaking}
 Motion Time: ${lastFullMotionTimeSpan}ms
-Still Time Accumulated: ${stillTimeAccumulated}ms
+Still Time: ${stillTimeAccumulated}ms
 Max Motion: ${maxMotion.toFixed(2)}
-    `;
+`;
 
-    // Start shaking if enough motion is detected
+    // Start shaking logic
     if (!isShaking && totalMotion > sensitivityShake) {
         isShaking = true;
-        stillTimeAccumulated = 0;  // Reset still time
+        stillTimeAccumulated = 0;
         lastFullMotionTime = currentTime;
         numberOfShakes++;
         messageElement.textContent = 'Rolling...';
         dice1.classList.add('rolling');
         dice2.classList.add('rolling');
     } 
-    // When shaking, track stillness over time
+    // Stop shaking logic
     else if (isShaking) {
         if (totalMotion < sensitivityStill) {
-            stillTimeAccumulated += 16; // Approximate time between motion events
+            stillTimeAccumulated += currentTime - lastFullMotionTime;
+            if (stillTimeAccumulated >= timeSensitivityToStill) {
+                isShaking = false;
+                stillTimeAccumulated = 0;
+                dice1.classList.remove('rolling');
+                dice2.classList.remove('rolling');
+                rollDice();
+                messageElement.textContent = 'Shake your device to roll the dice!';
+            }
         } else {
-            stillTimeAccumulated = 0;  // Reset if there's significant motion
-        }
-
-        // Only stop if we've accumulated enough still time
-        if (stillTimeAccumulated > timeSensitivityToStill) {
-            isShaking = false;
             stillTimeAccumulated = 0;
-            lastFullMotionTime = currentTime;
-            dice1.classList.remove('rolling');
-            dice2.classList.remove('rolling');
-            rollDice();
-            messageElement.textContent = 'Shake your device to roll the dice!';
         }
     }
 
-    // Update last values after all calculations
+    // Update last motion time and values
+    lastFullMotionTime = currentTime;
     lastX = x;
     lastY = y;
     lastZ = z;
