@@ -106,7 +106,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.21</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.22</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -313,6 +313,7 @@
             if (totalMotion > sensitivityShake) {
                 if (!isShaking & motionAndTime) {
                     isShaking = true;
+                    lastFullMotionTimeSpan = currentTime
                     numberOfShakes++
                     messageElement.textContent = 'Rolling...';
                     dice1.classList.add('rolling');
@@ -323,6 +324,7 @@
             else if (totalMotion < sensitivityStill) {
                 if (isShaking & stillAndTime) {
                     isShaking = false;
+                    lastFullMotionTimeSpan = currentTime
                     dice1.classList.remove('rolling');
                     dice2.classList.remove('rolling');
                     rollDice();
