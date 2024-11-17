@@ -106,7 +106,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.20</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.21</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -287,6 +287,7 @@
 
             lastFullMotionTimeSpan = currentTime - lastFullMotionTime
             let motionAndTime = false
+            let stillAndTime = false
             if (lastFullMotionTimeSpan > timeSensitivityToShake) {
                 motionAndTime = true                
             }
