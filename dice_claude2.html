@@ -103,7 +103,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.01</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.02</button>
     <div class="message">Shake your device to roll the dice!</div>
     
     <div class="container">
@@ -120,7 +120,7 @@
     <div id="debugDiv"></div>
 
     <script>
-        const debugDiv = document.getElementById('debugDiv');
+      const debugDiv = document.getElementById('debugDiv');
         const permissionButton = document.getElementById('permissionButton');
         const messageElement = document.querySelector('.message');
         const dice1 = document.getElementById('dice1');
@@ -132,27 +132,8 @@
         let lastY = 0;
         let lastZ = 0;
         let firstMotionRead = true;
-
-        function initializeMotionDetection() {
-            if (typeof DeviceMotionEvent.requestPermission === 'function') {
-                DeviceMotionEvent.requestPermission()
-                    .then(response => {
-                        if (response === 'granted') {
-                            window.addEventListener('devicemotion', handleMotion);
-                            permissionButton.classList.add('hidden');
-                            messageElement.classList.remove('hidden');
-                        } else {
-                            messageElement.textContent = 'Permission denied. Please reload to try again.';
-                            messageElement.classList.remove('hidden');
-                        }
-                    })
-                    .catch(console.error);
-            } else {
-                window.addEventListener('devicemotion', handleMotion);
-                permissionButton.classList.add('hidden');
-                messageElement.classList.remove('hidden');
-            }
-        }
+        const shakingThreshold = 15; // Adjust this value to change sensitivity
+        let shakeTimeout = null;
 
         function handleMotion(event) {
             const x = event.acceleration.x;
@@ -172,7 +153,28 @@
             const deltaZ = Math.abs(z - lastZ);
             const totalMotion = deltaX + deltaY + deltaZ;
 
-            debugDiv.textContent = `Motion Detection v0.1
+            // Detect shaking
+            if (!isShaking && totalMotion > shakingThreshold) {
+                isShaking = true;
+                dice1.classList.add('rolling');
+                
+                // Clear any existing timeout
+                if (shakeTimeout) {
+                    clearTimeout(shakeTimeout);
+                }
+            } else if (isShaking && totalMotion <= shakingThreshold) {
+                // Set a timeout to stop rolling after motion ceases
+                if (shakeTimeout) {
+                    clearTimeout(shakeTimeout);
+                }
+                shakeTimeout = setTimeout(() => {
+                    isShaking = false;
+                    dice1.classList.remove('rolling');
+                    rollToRandom();
+                }, 250); // Adjust this delay as needed
+            }
+
+            debugDiv.textContent = `Motion Detection v0.2
 ------------------
 X: ${x?.toFixed(2)}
 Y: ${y?.toFixed(2)}
@@ -183,14 +185,32 @@ Delta Y: ${deltaY.toFixed(2)}
 Delta Z: ${deltaZ.toFixed(2)}
 
 Total Motion: ${totalMotion.toFixed(2)}
-Is Shaking: ${isShaking}`;
+Is Shaking: ${isShaking}
+Threshold: ${shakingThreshold}`;
 
             lastX = x;
             lastY = y;
             lastZ = z;
         }
 
+        function rollToRandom() {
+            // Random rotations for the final position
+            const rotations = [
+                [0, 0, 0],      // 1
+                [0, 180, 0],    // 2
+                [0, 90, 0],     // 3
+                [0, -90, 0],    // 4
+                [90, 0, 0],     // 5
+                [-90, 0, 0]     // 6
+            ];
+            const randomRotation = rotations[Math.floor(Math.random() * 6)];
+            dice1.style.transform = `rotateX(${randomRotation[0]}deg) rotateY(${randomRotation[1]}deg) rotateZ(${randomRotation[2]}deg)`;
+        }
+
         permissionButton.addEventListener('click', initializeMotionDetection);
+
+        // Initial roll
+        rollToRandom();
     </script>
 </body>
 </html>
