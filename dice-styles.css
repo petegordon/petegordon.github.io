@@ -51,7 +51,6 @@ body {
     padding: 10px;
     box-sizing: border-box;
     background: #c11b1b;
-    border-radius: 15px;
     box-shadow: 
         inset 0 0 15px rgba(0, 0, 0, 0.2),
         0 0 5px rgba(255, 255, 255, 0.1);
@@ -62,43 +61,7 @@ body {
     position: absolute;
     inset: 0;
     border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 15px;
     pointer-events: none;
-}
-
-.face-edge {
-    position: absolute;
-    background: #c11b1b;
-    width: 4px;
-    height: 100px;
-    left: -2px;
-    transform-origin: right;
-    transform: rotateY(-90deg);
-}
-
-.face-edge.right {
-    left: auto;
-    right: -2px;
-    transform-origin: left;
-    transform: rotateY(90deg);
-}
-
-.face-edge.top {
-    width: 100px;
-    height: 4px;
-    top: -2px;
-    left: 0;
-    transform-origin: bottom;
-    transform: rotateX(90deg);
-}
-
-.face-edge.bottom {
-    width: 100px;
-    height: 4px;
-    bottom: -2px;
-    left: 0;
-    transform-origin: top;
-    transform: rotateX(-90deg);
 }
 
 .dot {
@@ -177,8 +140,7 @@ body {
 .face:nth-child(6) .dot:nth-of-type(5) { grid-area: b; }
 .face:nth-child(6) .dot:nth-of-type(6) { grid-area: d; }
 
-.dice.rolling .face,
-.dice.rolling .face-edge {
+.dice.rolling .face {
     background: #d52f2f;
     transition: background 0.3s;
 }
