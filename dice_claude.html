@@ -106,7 +106,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.29</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.30</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -267,16 +267,23 @@ Motion Time: ${lastFullMotionTimeSpan}ms
         }
 
         let lastFullMotionTime = null
-        
+                
         function handleMotion(event) {
             const x = event.acceleration.x;
             const y = event.acceleration.y;
             const z = event.acceleration.z;
         
+            // Add timestamp for each update
+            const updateTime = new Date().toISOString().split('T')[1].split('.')[0];
+            
             // Store current values for debug display before updating last values
             const currentX = x;
             const currentY = y;
             const currentZ = z;
+        
+            // Log every motion event to a separate debug message
+            debugMessageDiv.textContent = `Last Update: ${updateTime}
+        Current Values - X: ${x.toFixed(2)}, Y: ${y.toFixed(2)}, Z: ${z.toFixed(2)}`;
         
             // If this is the first reading, initialize last values and exit
             if (firstMotionRead) {
@@ -284,6 +291,7 @@ Motion Time: ${lastFullMotionTimeSpan}ms
                 lastY = y;
                 lastZ = z;
                 firstMotionRead = false;
+                debugMessageDiv.textContent += '\nFirst motion read - initialized values';
                 return;
             }
         
@@ -306,8 +314,9 @@ Motion Time: ${lastFullMotionTimeSpan}ms
             let motionAndTime = lastFullMotionTimeSpan > timeSensitivityToShake;
             let stillAndTime = lastFullMotionTimeSpan > timeSensitivityToStill;
         
-            // Update debug display with current values
+            // Update debug display with current values and add update counter
             debugDiv.textContent = `
+        Update Time: ${updateTime}
         firstMotionRead: ${firstMotionRead}            
         X: ${currentX.toFixed(2)}
         Y: ${currentY.toFixed(2)}
@@ -324,9 +333,11 @@ Motion Time: ${lastFullMotionTimeSpan}ms
         Threshold: ${sensitivityShake}
         Max Motion: ${maxMotion.toFixed(2)}
         Motion Time: ${lastFullMotionTimeSpan}ms
+        Motion and Time Check: ${motionAndTime}
+        Still and Time Check: ${stillAndTime}
             `;
         
-            // Handle shake detection
+            // Handle shake detection with debug info
             if (!isShaking && motionAndTime && totalMotion > sensitivityShake) {
                 isShaking = true;
                 lastFullMotionTime = currentTime;
@@ -334,6 +345,7 @@ Motion Time: ${lastFullMotionTimeSpan}ms
                 messageElement.textContent = 'Rolling...';
                 dice1.classList.add('rolling');
                 dice2.classList.add('rolling');
+                debugMessageDiv.textContent += '\nStarted Rolling';
             } 
             else if (isShaking && stillAndTime && totalMotion < sensitivityStill) {
                 isShaking = false;
@@ -342,12 +354,20 @@ Motion Time: ${lastFullMotionTimeSpan}ms
                 dice2.classList.remove('rolling');
                 rollDice();
                 messageElement.textContent = 'Shake your device to roll the dice!';
+                debugMessageDiv.textContent += '\nStopped Rolling';
             }
+        
+            // Add pre-update debug info
+            debugMessageDiv.textContent += `\nUpdating last values:
+        Before - X: ${lastX.toFixed(2)}, Y: ${lastY.toFixed(2)}, Z: ${lastZ.toFixed(2)}`;
         
             // Update last values after all calculations are done
             lastX = x;
             lastY = y;
             lastZ = z;
+        
+            // Add post-update debug info
+            debugMessageDiv.textContent += `\nAfter - X: ${lastX.toFixed(2)}, Y: ${lastY.toFixed(2)}, Z: ${lastZ.toFixed(2)}`;
         }
 
         function initializeMotionDetection() {
