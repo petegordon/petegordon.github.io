@@ -1,43 +1,4 @@
-body {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    margin: 0;
-    background: linear-gradient(135deg, #1a2a3a, #2c3e50);
-    font-family: Arial, sans-serif;
-    overflow: hidden;
-}
-
-.dice-container {
-    display: flex;
-    gap: 40px;
-    margin: 20px;
-    perspective: 1000px;
-}
-
-.dice {
-    position: relative;
-    width: 100px;
-    height: 100px;
-    transform-style: preserve-3d;
-    transition: transform 1.5s ease-out;
-}
-
-.dice.rolling {
-    transition: transform 0.2s linear;
-    animation: roll 0.6s linear infinite;
-}
-
-@keyframes roll {
-    0% { 
-        transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); 
-    }
-    100% { 
-        transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg);
-    }
-}
+/* ... keep all CSS up to .face the same ... */
 
 .face {
     width: 100px;
@@ -52,45 +13,22 @@ body {
     box-sizing: border-box;
     background: #c11b1b;
     border-radius: 15px;
-    overflow: hidden;
-}
-
-/* Corner fillers */
-.face::before {
-    content: '';
-    position: absolute;
-    top: 13px;
-    left: 13px;
-    right: 13px;
-    bottom: 13px;
-    background: #c11b1b;
-    z-index: -1;
-}
-
-.face::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 15px;
-    pointer-events: none;
     box-shadow: 
         inset 0 0 15px rgba(0, 0, 0, 0.2),
         0 0 5px rgba(255, 255, 255, 0.1);
 }
 
-.face .corner {
+/* Border overlay */
+.face::after {
+    content: '';
     position: absolute;
-    width: 16px;
-    height: 16px;
-    background: #c11b1b;
+    inset: -1px;  /* Slightly larger to cover gaps */
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    pointer-events: none;
+    background: #c11b1b;  /* Same as face background */
     z-index: -1;
 }
-
-.face .corner:nth-child(1) { top: 0; left: 0; }
-.face .corner:nth-child(2) { top: 0; right: 0; }
-.face .corner:nth-child(3) { bottom: 0; left: 0; }
-.face .corner:nth-child(4) { bottom: 0; right: 0; }
 
 .dot {
     width: 18px;
@@ -103,6 +41,7 @@ body {
     position: relative;
     justify-self: center;
     align-self: center;
+    z-index: 1;  /* Keep dots above the background */
 }
 
 .dot::after {
@@ -120,93 +59,57 @@ body {
 .face:nth-child(1) {
     transform: translateZ(50px);
 }
-.face:nth-child(1) .dot {
-    grid-area: g;
-}
+.face:nth-child(1) .dot:nth-of-type(1) { grid-area: g; }
 
 /* Face 2 - diagonal dots */
 .face:nth-child(2) {
     transform: rotateY(180deg) translateZ(50px);
 }
-.face:nth-child(2) .dot:nth-child(5) { grid-area: a; }
-.face:nth-child(2) .dot:nth-child(6) { grid-area: b; }
+.face:nth-child(2) .dot:nth-of-type(1) { grid-area: a; }
+.face:nth-child(2) .dot:nth-of-type(2) { grid-area: b; }
 
 /* Face 3 - diagonal dots plus middle */
 .face:nth-child(3) {
     transform: rotateY(90deg) translateZ(50px);
 }
-.face:nth-child(3) .dot:nth-child(5) { grid-area: a; }
-.face:nth-child(3) .dot:nth-child(6) { grid-area: g; }
-.face:nth-child(3) .dot:nth-child(7) { grid-area: b; }
+.face:nth-child(3) .dot:nth-of-type(1) { grid-area: a; }
+.face:nth-child(3) .dot:nth-of-type(2) { grid-area: g; }
+.face:nth-child(3) .dot:nth-of-type(3) { grid-area: b; }
 
 /* Face 4 - corner dots */
 .face:nth-child(4) {
     transform: rotateY(-90deg) translateZ(50px);
 }
-.face:nth-child(4) .dot:nth-child(5) { grid-area: a; }
-.face:nth-child(4) .dot:nth-child(6) { grid-area: c; }
-.face:nth-child(4) .dot:nth-child(7) { grid-area: b; }
-.face:nth-child(4) .dot:nth-child(8) { grid-area: d; }
+.face:nth-child(4) .dot:nth-of-type(1) { grid-area: a; }
+.face:nth-child(4) .dot:nth-of-type(2) { grid-area: c; }
+.face:nth-child(4) .dot:nth-of-type(3) { grid-area: b; }
+.face:nth-child(4) .dot:nth-of-type(4) { grid-area: d; }
 
 /* Face 5 - corner dots plus middle */
 .face:nth-child(5) {
     transform: rotateX(90deg) translateZ(50px);
 }
-.face:nth-child(5) .dot:nth-child(5) { grid-area: a; }
-.face:nth-child(5) .dot:nth-child(6) { grid-area: c; }
-.face:nth-child(5) .dot:nth-child(7) { grid-area: g; }
-.face:nth-child(5) .dot:nth-child(8) { grid-area: b; }
-.face:nth-child(5) .dot:nth-child(9) { grid-area: d; }
+.face:nth-child(5) .dot:nth-of-type(1) { grid-area: a; }
+.face:nth-child(5) .dot:nth-of-type(2) { grid-area: c; }
+.face:nth-child(5) .dot:nth-of-type(3) { grid-area: g; }
+.face:nth-child(5) .dot:nth-of-type(4) { grid-area: b; }
+.face:nth-child(5) .dot:nth-of-type(5) { grid-area: d; }
 
 /* Face 6 - all side dots */
 .face:nth-child(6) {
     transform: rotateX(-90deg) translateZ(50px);
 }
-.face:nth-child(6) .dot:nth-child(5) { grid-area: a; }
-.face:nth-child(6) .dot:nth-child(6) { grid-area: c; }
-.face:nth-child(6) .dot:nth-child(7) { grid-area: e; }
-.face:nth-child(6) .dot:nth-child(8) { grid-area: f; }
-.face:nth-child(6) .dot:nth-child(9) { grid-area: b; }
-.face:nth-child(6) .dot:nth-child(10) { grid-area: d; }
+.face:nth-child(6) .dot:nth-of-type(1) { grid-area: a; }
+.face:nth-child(6) .dot:nth-of-type(2) { grid-area: c; }
+.face:nth-child(6) .dot:nth-of-type(3) { grid-area: e; }
+.face:nth-child(6) .dot:nth-of-type(4) { grid-area: f; }
+.face:nth-child(6) .dot:nth-of-type(5) { grid-area: b; }
+.face:nth-child(6) .dot:nth-of-type(6) { grid-area: d; }
 
-.dice.rolling .face {
+.dice.rolling .face,
+.dice.rolling .face::after {
     background: #d52f2f;
     transition: background 0.3s;
 }
 
-.dice.rolling .face::before {
-    background: #d52f2f;
-    transition: background 0.3s;
-}
-
-.dice.rolling .face .corner {
-    background: #d52f2f;
-    transition: background 0.3s;
-}
-
-.message {
-    color: white;
-    font-size: 1.2em;
-    margin: 20px;
-    text-align: center;
-}
-
-.permission-button {
-    padding: 12px 24px;
-    font-size: 1.1em;
-    background: #3498db;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    margin: 20px;
-    transition: background 0.3s;
-}
-
-.permission-button:hover {
-    background: #2980b9;
-}
-
-.hidden {
-    display: none;
-}
+/* ... keep rest of CSS the same ... */
