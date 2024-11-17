@@ -105,7 +105,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.40</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.41</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -260,94 +260,8 @@ Motion Time: ${lastFullMotionTimeSpan}ms
                 dice2.style.transform = `rotateX(${rotation2[0]}deg) rotateY(${rotation2[1]}deg) rotateZ(${rotation2[2]}deg)`;
             }, 50);
         }
-
-function handleMotion(event) {
-    const x = event.acceleration.x;
-    const y = event.acceleration.y;
-    const z = event.acceleration.z;
-    const currentTime = Date.now();
-
-    // If this is the first reading, initialize last values and exit
-    if (firstMotionRead) {
-        lastX = x;
-        lastY = y;
-        lastZ = z;
-        firstMotionRead = false;
-        return;
-    }
-
-    // Calculate motion deltas
-    const deltaX = Math.abs(x - lastX);
-    const deltaY = Math.abs(y - lastY);
-    const deltaZ = Math.abs(z - lastZ);
-    const totalMotion = deltaX + deltaY + deltaZ;
-
-    if (lastFullMotionTime == null) {
-        lastFullMotionTime = currentTime;
-    }
-    
-    if (totalMotion > maxMotion) {
-        maxMotion = totalMotion;
-    }
-
-    lastFullMotionTimeSpan = currentTime - lastFullMotionTime;
-    let motionAndTime = lastFullMotionTimeSpan > timeSensitivityToShake;
-
-    // Update debug display
-    debugDiv.textContent = `
-firstMotionRead: ${firstMotionRead}            
-X: ${x.toFixed(2)}
-Y: ${y.toFixed(2)}
-Z: ${z.toFixed(2)}       
-last X: ${lastX.toFixed(2)}
-last Y: ${lastY.toFixed(2)}
-last Z: ${lastZ.toFixed(2)}              
-Motion X: ${deltaX.toFixed(2)}
-Motion Y: ${deltaY.toFixed(2)}
-Motion Z: ${deltaZ.toFixed(2)}
-Total Motion: ${totalMotion.toFixed(2)}
-Number of Shakes: ${numberOfShakes}
-Is Shaking: ${isShaking}
-Motion Time: ${lastFullMotionTimeSpan}ms
-Still Time: ${stillTimeAccumulated}ms
-Max Motion: ${maxMotion.toFixed(2)}
-`;
-
-    // Start shaking logic
-    if (!isShaking && totalMotion > sensitivityShake) {
-        isShaking = true;
-        stillTimeAccumulated = 0;
-        lastFullMotionTime = currentTime;
-        numberOfShakes++;
-        messageElement.textContent = 'Rolling...';
-        dice1.classList.add('rolling');
-        dice2.classList.add('rolling');
-    } 
-    // Stop shaking logic
-    else if (isShaking) {
-        if (totalMotion < sensitivityStill) {
-            stillTimeAccumulated += currentTime - lastFullMotionTime;
-            if (stillTimeAccumulated >= timeSensitivityToStill) {
-                isShaking = false;
-                stillTimeAccumulated = 0;
-                dice1.classList.remove('rolling');
-                dice2.classList.remove('rolling');
-                rollDice();
-                messageElement.textContent = 'Shake your device to roll the dice!';
-            }
-        } else {
-            stillTimeAccumulated = 0;
-        }
-    }
-
-    // Update last motion time and values
-    lastFullMotionTime = currentTime;
-    lastX = x;
-    lastY = y;
-    lastZ = z;
-}
         
-        function handleMotionBackup(event) {
+        function handleMotion(event) {
             const x = event.acceleration.x;
             const y = event.acceleration.y;
             const z = event.acceleration.z;
