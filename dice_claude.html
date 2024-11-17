@@ -335,7 +335,7 @@ Motion Time: ${lastFullMotionTimeSpan}ms
                 dice1.classList.add('rolling');
                 dice2.classList.add('rolling');
             } 
-            else if (isShaking && stillAndTime && totalMotion < sensitivityStill) {
+            else if (isShaking && stillAndTime && totalMotion > sensitivityStill) {
                 isShaking = false;
                 lastFullMotionTime = currentTime;
                 dice1.classList.remove('rolling');
