@@ -106,7 +106,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.18</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.19</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -287,6 +287,7 @@
             let motionAndTime = false
             if (lastFullMotionTimeSpan > timeSensitivity) {
                 motionAndTime = true
+                lastFullMotionTime = currentTime
             }
             // Update debug display
             // debugDiv.textContent = `Motion: ${deltaX} ${deltaY} ${deltaX} ${totalMotion.toFixed(2)} Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity} Max Motion: ${maxMotion} Motion Time: ${lastFullMotionTimeSpan}`;            
