@@ -106,7 +106,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.31</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.32</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -327,7 +327,7 @@ Motion Time: ${lastFullMotionTimeSpan}ms
             `;
         
             // Check for shake start/stop only if we're not currently in a state transition
-            if (!isShaking && motionAndTime && totalMotion > sensitivityShake) {
+            if (!isShaking && motionAndTime && lastFullMotionTimeSpan > sensitivityShake) {
                 isShaking = true;
                 lastFullMotionTime = currentTime;
                 numberOfShakes++;
@@ -335,7 +335,7 @@ Motion Time: ${lastFullMotionTimeSpan}ms
                 dice1.classList.add('rolling');
                 dice2.classList.add('rolling');
             } 
-            else if (isShaking && stillAndTime && totalMotion > sensitivityStill) {
+            else if (isShaking && stillAndTime && lastFullMotionTimeSpan > sensitivityStill) {
                 isShaking = false;
                 lastFullMotionTime = currentTime;
                 dice1.classList.remove('rolling');
