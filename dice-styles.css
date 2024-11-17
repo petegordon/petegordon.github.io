@@ -50,38 +50,47 @@ body {
         "d . b";
     padding: 10px;
     box-sizing: border-box;
-    background: none;  /* Remove base background */
+    background: #c11b1b;
+    border-radius: 15px;
     overflow: hidden;
 }
 
-/* Background layer to fill corners */
+/* Corner fillers */
 .face::before {
     content: '';
     position: absolute;
-    top: -1px;  /* Slightly overlap */
-    left: -1px;
-    right: -1px;
-    bottom: -1px;
+    top: 13px;
+    left: 13px;
+    right: 13px;
+    bottom: 13px;
     background: #c11b1b;
-    border-radius: 15px;
-    z-index: -2;
+    z-index: -1;
 }
 
-/* Border layer */
 .face::after {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: 15px;
-    z-index: -1;
+    pointer-events: none;
     box-shadow: 
         inset 0 0 15px rgba(0, 0, 0, 0.2),
         0 0 5px rgba(255, 255, 255, 0.1);
 }
+
+.face .corner {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: #c11b1b;
+    z-index: -1;
+}
+
+.face .corner:nth-child(1) { top: 0; left: 0; }
+.face .corner:nth-child(2) { top: 0; right: 0; }
+.face .corner:nth-child(3) { bottom: 0; left: 0; }
+.face .corner:nth-child(4) { bottom: 0; right: 0; }
 
 .dot {
     width: 18px;
@@ -119,48 +128,58 @@ body {
 .face:nth-child(2) {
     transform: rotateY(180deg) translateZ(50px);
 }
-.face:nth-child(2) .dot:nth-child(1) { grid-area: a; }
-.face:nth-child(2) .dot:nth-child(2) { grid-area: b; }
+.face:nth-child(2) .dot:nth-child(5) { grid-area: a; }
+.face:nth-child(2) .dot:nth-child(6) { grid-area: b; }
 
 /* Face 3 - diagonal dots plus middle */
 .face:nth-child(3) {
     transform: rotateY(90deg) translateZ(50px);
 }
-.face:nth-child(3) .dot:nth-child(1) { grid-area: a; }
-.face:nth-child(3) .dot:nth-child(2) { grid-area: g; }
-.face:nth-child(3) .dot:nth-child(3) { grid-area: b; }
+.face:nth-child(3) .dot:nth-child(5) { grid-area: a; }
+.face:nth-child(3) .dot:nth-child(6) { grid-area: g; }
+.face:nth-child(3) .dot:nth-child(7) { grid-area: b; }
 
 /* Face 4 - corner dots */
 .face:nth-child(4) {
     transform: rotateY(-90deg) translateZ(50px);
 }
-.face:nth-child(4) .dot:nth-child(1) { grid-area: a; }
-.face:nth-child(4) .dot:nth-child(2) { grid-area: c; }
-.face:nth-child(4) .dot:nth-child(3) { grid-area: b; }
-.face:nth-child(4) .dot:nth-child(4) { grid-area: d; }
+.face:nth-child(4) .dot:nth-child(5) { grid-area: a; }
+.face:nth-child(4) .dot:nth-child(6) { grid-area: c; }
+.face:nth-child(4) .dot:nth-child(7) { grid-area: b; }
+.face:nth-child(4) .dot:nth-child(8) { grid-area: d; }
 
 /* Face 5 - corner dots plus middle */
 .face:nth-child(5) {
     transform: rotateX(90deg) translateZ(50px);
 }
-.face:nth-child(5) .dot:nth-child(1) { grid-area: a; }
-.face:nth-child(5) .dot:nth-child(2) { grid-area: c; }
-.face:nth-child(5) .dot:nth-child(3) { grid-area: g; }
-.face:nth-child(5) .dot:nth-child(4) { grid-area: b; }
-.face:nth-child(5) .dot:nth-child(5) { grid-area: d; }
+.face:nth-child(5) .dot:nth-child(5) { grid-area: a; }
+.face:nth-child(5) .dot:nth-child(6) { grid-area: c; }
+.face:nth-child(5) .dot:nth-child(7) { grid-area: g; }
+.face:nth-child(5) .dot:nth-child(8) { grid-area: b; }
+.face:nth-child(5) .dot:nth-child(9) { grid-area: d; }
 
 /* Face 6 - all side dots */
 .face:nth-child(6) {
     transform: rotateX(-90deg) translateZ(50px);
 }
-.face:nth-child(6) .dot:nth-child(1) { grid-area: a; }
-.face:nth-child(6) .dot:nth-child(2) { grid-area: c; }
-.face:nth-child(6) .dot:nth-child(3) { grid-area: e; }
-.face:nth-child(6) .dot:nth-child(4) { grid-area: f; }
-.face:nth-child(6) .dot:nth-child(5) { grid-area: b; }
-.face:nth-child(6) .dot:nth-child(6) { grid-area: d; }
+.face:nth-child(6) .dot:nth-child(5) { grid-area: a; }
+.face:nth-child(6) .dot:nth-child(6) { grid-area: c; }
+.face:nth-child(6) .dot:nth-child(7) { grid-area: e; }
+.face:nth-child(6) .dot:nth-child(8) { grid-area: f; }
+.face:nth-child(6) .dot:nth-child(9) { grid-area: b; }
+.face:nth-child(6) .dot:nth-child(10) { grid-area: d; }
+
+.dice.rolling .face {
+    background: #d52f2f;
+    transition: background 0.3s;
+}
 
 .dice.rolling .face::before {
+    background: #d52f2f;
+    transition: background 0.3s;
+}
+
+.dice.rolling .face .corner {
     background: #d52f2f;
     transition: background 0.3s;
 }
