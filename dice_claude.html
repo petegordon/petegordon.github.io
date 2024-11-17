@@ -106,7 +106,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.25</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.26</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -298,6 +298,12 @@
             // Update debug display
             // debugDiv.textContent = `Motion: ${deltaX} ${deltaY} ${deltaX} ${totalMotion.toFixed(2)} Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity} Max Motion: ${maxMotion} Motion Time: ${lastFullMotionTimeSpan}`;            
             debugDiv.textContent = `
+            X: ${x.toFixed(2)}
+            Y: ${y.toFixed(2)}
+            Z: ${z.toFixed(2)}       
+            last X: ${lastX.toFixed(2)}
+            last Y: ${lastY.toFixed(2)}
+            last Z: ${lastZ.toFixed(2)}              
             Motion X: ${deltaX.toFixed(2)}
             Motion Y: ${deltaY.toFixed(2)}
             Motion Z: ${deltaZ.toFixed(2)}
