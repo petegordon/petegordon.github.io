@@ -51,21 +51,17 @@ body {
     padding: 10px;
     box-sizing: border-box;
     border-radius: 15px;
-    background: none;
+    background: #c11b1b;  /* Solid base color */
     overflow: hidden;
-    box-shadow: 
-        inset 0 0 15px rgba(0, 0, 0, 0.2),
-        0 0 5px rgba(255, 255, 255, 0.1);
 }
 
-.face::before {
+.face::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, #d52f2f, #c11b1b);
     border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: 15px;
-    z-index: -1;
+    pointer-events: none;
 }
 
 .dot {
@@ -145,12 +141,8 @@ body {
 .face:nth-child(6) .dot:nth-child(5) { grid-area: b; }
 .face:nth-child(6) .dot:nth-child(6) { grid-area: d; }
 
-.dice.rolling .face::before {
-    background: linear-gradient(135deg, 
-        #d52f2f,
-        #c11b1b,
-        #e94343
-    );
+.dice.rolling .face {
+    background: #d52f2f;
     transition: background 0.3s;
 }
 
