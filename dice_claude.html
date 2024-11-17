@@ -218,15 +218,21 @@
         // Update debug display
         //debugDiv.textContent = `Motion: ____ Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity} Max Motion: ${maxMotion}`;
         debugDiv.textContent = `
-        Motion X: 
-        Motion Y: 
-        Motion Z: 
-        Total Motion: 
-        Number of Shakes: ${numberOfShakes}
-        Is Shaking: ${isShaking}
-        Threshold: ${sensitivityShake}
-        Max Motion: ${maxMotion.toFixed(2)}
-        Motion Time: ${lastFullMotionTimeSpan}ms
+X: 
+Y: 
+Z: 
+last X: 
+last Y: 
+last Z:         
+Motion X: 
+Motion Y: 
+Motion Z: 
+Total Motion: 
+Number of Shakes: ${numberOfShakes}
+Is Shaking: ${isShaking}
+Threshold: ${sensitivityShake}
+Max Motion: ${maxMotion.toFixed(2)}
+Motion Time: ${lastFullMotionTimeSpan}ms
         `;        
         // Initially hide the message
         messageElement.classList.add('hidden');
@@ -298,21 +304,21 @@
             // Update debug display
             // debugDiv.textContent = `Motion: ${deltaX} ${deltaY} ${deltaX} ${totalMotion.toFixed(2)} Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity} Max Motion: ${maxMotion} Motion Time: ${lastFullMotionTimeSpan}`;            
             debugDiv.textContent = `
-            X: ${x.toFixed(2)}
-            Y: ${y.toFixed(2)}
-            Z: ${z.toFixed(2)}       
-            last X: ${lastX.toFixed(2)}
-            last Y: ${lastY.toFixed(2)}
-            last Z: ${lastZ.toFixed(2)}              
-            Motion X: ${deltaX.toFixed(2)}
-            Motion Y: ${deltaY.toFixed(2)}
-            Motion Z: ${deltaZ.toFixed(2)}
-            Total Motion: ${totalMotion.toFixed(2)}
-            Number of Shakes: ${numberOfShakes}
-            Is Shaking: ${isShaking}
-            Threshold: ${sensitivityShake}
-            Max Motion: ${maxMotion.toFixed(2)}
-            Motion Time: ${lastFullMotionTimeSpan}ms
+X: ${x.toFixed(2)}
+Y: ${y.toFixed(2)}
+Z: ${z.toFixed(2)}       
+last X: ${lastX.toFixed(2)}
+last Y: ${lastY.toFixed(2)}
+last Z: ${lastZ.toFixed(2)}              
+Motion X: ${deltaX.toFixed(2)}
+Motion Y: ${deltaY.toFixed(2)}
+Motion Z: ${deltaZ.toFixed(2)}
+Total Motion: ${totalMotion.toFixed(2)}
+Number of Shakes: ${numberOfShakes}
+Is Shaking: ${isShaking}
+Threshold: ${sensitivityShake}
+Max Motion: ${maxMotion.toFixed(2)}
+Motion Time: ${lastFullMotionTimeSpan}ms
             `;
             // If enough time passed and enough motion, start rolling or stop motion            
             if (!isShaking & motionAndTime & totalMotion > sensitivityShake) {
