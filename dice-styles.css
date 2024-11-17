@@ -43,14 +43,15 @@ body {
     width: 100px;
     height: 100px;            
     position: absolute;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-around;
-    align-items: center;
+    display: grid;
+    grid-template-areas: 
+        "a . c"
+        "e g f"
+        "d . b";
     padding: 10px;
     box-sizing: border-box;
     border-radius: 15px;
-    background-color: #c11b1b;
+    background: none;
     overflow: hidden;
     box-shadow: 
         inset 0 0 15px rgba(0, 0, 0, 0.2),
@@ -60,13 +61,11 @@ body {
 .face::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
+    background: linear-gradient(135deg, #d52f2f, #c11b1b);
     border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: 15px;
-    pointer-events: none;
+    z-index: -1;
 }
 
 .dot {
@@ -74,11 +73,12 @@ body {
     height: 18px;
     background: white;
     border-radius: 50%;
-    margin: 2px;
     box-shadow: 
         inset 0 0 4px rgba(0, 0, 0, 0.2),
         0 0 4px rgba(255, 255, 255, 0.3);
     position: relative;
+    justify-self: center;
+    align-self: center;
 }
 
 .dot::after {
@@ -92,37 +92,60 @@ body {
     border-radius: 50%;
 }
 
-.face:nth-child(1) { 
-    transform: translateZ(50px); 
-    background: linear-gradient(135deg, #d52f2f, #c11b1b);
+/* Face 1 - middle dot */
+.face:nth-child(1) {
+    transform: translateZ(50px);
+}
+.face:nth-child(1) .dot {
+    grid-area: g;
 }
 
-.face:nth-child(2) { 
+/* Face 2 - diagonal dots */
+.face:nth-child(2) {
     transform: rotateY(180deg) translateZ(50px);
-    background: linear-gradient(135deg, #d52f2f, #c11b1b);
 }
+.face:nth-child(2) .dot:nth-child(1) { grid-area: a; }
+.face:nth-child(2) .dot:nth-child(2) { grid-area: b; }
 
-.face:nth-child(3) { 
+/* Face 3 - diagonal dots plus middle */
+.face:nth-child(3) {
     transform: rotateY(90deg) translateZ(50px);
-    background: linear-gradient(135deg, #d52f2f, #c11b1b);
 }
+.face:nth-child(3) .dot:nth-child(1) { grid-area: a; }
+.face:nth-child(3) .dot:nth-child(2) { grid-area: g; }
+.face:nth-child(3) .dot:nth-child(3) { grid-area: b; }
 
-.face:nth-child(4) { 
+/* Face 4 - corner dots */
+.face:nth-child(4) {
     transform: rotateY(-90deg) translateZ(50px);
-    background: linear-gradient(135deg, #d52f2f, #c11b1b);
 }
+.face:nth-child(4) .dot:nth-child(1) { grid-area: a; }
+.face:nth-child(4) .dot:nth-child(2) { grid-area: c; }
+.face:nth-child(4) .dot:nth-child(3) { grid-area: b; }
+.face:nth-child(4) .dot:nth-child(4) { grid-area: d; }
 
-.face:nth-child(5) { 
+/* Face 5 - corner dots plus middle */
+.face:nth-child(5) {
     transform: rotateX(90deg) translateZ(50px);
-    background: linear-gradient(135deg, #d52f2f, #c11b1b);
 }
+.face:nth-child(5) .dot:nth-child(1) { grid-area: a; }
+.face:nth-child(5) .dot:nth-child(2) { grid-area: c; }
+.face:nth-child(5) .dot:nth-child(3) { grid-area: g; }
+.face:nth-child(5) .dot:nth-child(4) { grid-area: b; }
+.face:nth-child(5) .dot:nth-child(5) { grid-area: d; }
 
-.face:nth-child(6) { 
+/* Face 6 - all side dots */
+.face:nth-child(6) {
     transform: rotateX(-90deg) translateZ(50px);
-    background: linear-gradient(135deg, #d52f2f, #c11b1b);
 }
+.face:nth-child(6) .dot:nth-child(1) { grid-area: a; }
+.face:nth-child(6) .dot:nth-child(2) { grid-area: c; }
+.face:nth-child(6) .dot:nth-child(3) { grid-area: e; }
+.face:nth-child(6) .dot:nth-child(4) { grid-area: f; }
+.face:nth-child(6) .dot:nth-child(5) { grid-area: b; }
+.face:nth-child(6) .dot:nth-child(6) { grid-area: d; }
 
-.dice.rolling .face {
+.dice.rolling .face::before {
     background: linear-gradient(135deg, 
         #d52f2f,
         #c11b1b,
