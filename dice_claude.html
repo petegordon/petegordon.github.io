@@ -106,7 +106,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.33</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.34</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -306,7 +306,10 @@ Motion Time: ${lastFullMotionTimeSpan}ms
             let motionAndTime = lastFullMotionTimeSpan > timeSensitivityToShake;
             let stillAndTime = lastFullMotionTimeSpan > timeSensitivityToStill;
         
-            // Update debug display
+            // Add stop condition debugging
+            const stopConditionMet = isShaking && stillAndTime && totalMotion < sensitivityStill;
+            
+            // Update debug display with stop condition info
             debugDiv.textContent = `
         firstMotionRead: ${firstMotionRead}            
         X: ${x.toFixed(2)}
@@ -321,7 +324,10 @@ Motion Time: ${lastFullMotionTimeSpan}ms
         Total Motion: ${totalMotion.toFixed(2)}
         Number of Shakes: ${numberOfShakes}
         Is Shaking: ${isShaking}
-        Threshold: ${sensitivityShake}
+        Still Time Check: ${stillAndTime}
+        Motion < Still Threshold: ${totalMotion < sensitivityStill}
+        Stop Condition Met: ${stopConditionMet}
+        Still Threshold: ${sensitivityStill}
         Max Motion: ${maxMotion.toFixed(2)}
         Motion Time: ${lastFullMotionTimeSpan}ms
             `;
@@ -335,7 +341,7 @@ Motion Time: ${lastFullMotionTimeSpan}ms
                 dice1.classList.add('rolling');
                 dice2.classList.add('rolling');
             } 
-            else if (isShaking && stillAndTime && totalMotion < sensitivityStill) {
+            else if (stopConditionMet) {
                 isShaking = false;
                 lastFullMotionTime = currentTime;
                 dice1.classList.remove('rolling');
