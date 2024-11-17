@@ -44,11 +44,8 @@ body {
     height: 100px;            
     position: absolute;
     display: grid;
-    grid-template-areas: 
-        "a . c"
-        "e g f"
-        "d . b";
-    padding: 10px;
+    grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+    padding: 15px;
     box-sizing: border-box;
     background: #c11b1b;
     box-shadow: 
@@ -89,56 +86,119 @@ body {
     border-radius: 50%;
 }
 
-/* Face 1 - middle dot */
+/* Face 1 - center dot */
 .face:nth-child(1) {
     transform: translateZ(50px);
 }
-.face:nth-child(1) .dot:nth-of-type(1) { grid-area: g; }
+.face:nth-child(1) .dot:nth-of-type(1) { 
+    grid-column: 2;
+    grid-row: 2;
+}
 
-/* Face 2 - diagonal dots */
+/* Face 2 - top right, bottom left */
 .face:nth-child(2) {
     transform: rotateY(180deg) translateZ(50px);
 }
-.face:nth-child(2) .dot:nth-of-type(1) { grid-area: a; }
-.face:nth-child(2) .dot:nth-of-type(2) { grid-area: b; }
+.face:nth-child(2) .dot:nth-of-type(1) { 
+    grid-column: 1;
+    grid-row: 1;
+}
+.face:nth-child(2) .dot:nth-of-type(2) { 
+    grid-column: 3;
+    grid-row: 3;
+}
 
-/* Face 3 - diagonal dots plus middle */
+/* Face 3 - diagonal + middle */
 .face:nth-child(3) {
     transform: rotateY(90deg) translateZ(50px);
 }
-.face:nth-child(3) .dot:nth-of-type(1) { grid-area: a; }
-.face:nth-child(3) .dot:nth-of-type(2) { grid-area: g; }
-.face:nth-child(3) .dot:nth-of-type(3) { grid-area: b; }
+.face:nth-child(3) .dot:nth-of-type(1) { 
+    grid-column: 1;
+    grid-row: 1;
+}
+.face:nth-child(3) .dot:nth-of-type(2) { 
+    grid-column: 2;
+    grid-row: 2;
+}
+.face:nth-child(3) .dot:nth-of-type(3) { 
+    grid-column: 3;
+    grid-row: 3;
+}
 
-/* Face 4 - corner dots */
+/* Face 4 - corners */
 .face:nth-child(4) {
     transform: rotateY(-90deg) translateZ(50px);
 }
-.face:nth-child(4) .dot:nth-of-type(1) { grid-area: a; }
-.face:nth-child(4) .dot:nth-of-type(2) { grid-area: c; }
-.face:nth-child(4) .dot:nth-of-type(3) { grid-area: b; }
-.face:nth-child(4) .dot:nth-of-type(4) { grid-area: d; }
+.face:nth-child(4) .dot:nth-of-type(1) { 
+    grid-column: 1;
+    grid-row: 1;
+}
+.face:nth-child(4) .dot:nth-of-type(2) { 
+    grid-column: 3;
+    grid-row: 1;
+}
+.face:nth-child(4) .dot:nth-of-type(3) { 
+    grid-column: 1;
+    grid-row: 3;
+}
+.face:nth-child(4) .dot:nth-of-type(4) { 
+    grid-column: 3;
+    grid-row: 3;
+}
 
-/* Face 5 - corner dots plus middle */
+/* Face 5 - corners + middle */
 .face:nth-child(5) {
     transform: rotateX(90deg) translateZ(50px);
 }
-.face:nth-child(5) .dot:nth-of-type(1) { grid-area: a; }
-.face:nth-child(5) .dot:nth-of-type(2) { grid-area: c; }
-.face:nth-child(5) .dot:nth-of-type(3) { grid-area: g; }
-.face:nth-child(5) .dot:nth-of-type(4) { grid-area: b; }
-.face:nth-child(5) .dot:nth-of-type(5) { grid-area: d; }
+.face:nth-child(5) .dot:nth-of-type(1) { 
+    grid-column: 1;
+    grid-row: 1;
+}
+.face:nth-child(5) .dot:nth-of-type(2) { 
+    grid-column: 3;
+    grid-row: 1;
+}
+.face:nth-child(5) .dot:nth-of-type(3) { 
+    grid-column: 2;
+    grid-row: 2;
+}
+.face:nth-child(5) .dot:nth-of-type(4) { 
+    grid-column: 1;
+    grid-row: 3;
+}
+.face:nth-child(5) .dot:nth-of-type(5) { 
+    grid-column: 3;
+    grid-row: 3;
+}
 
-/* Face 6 - all side dots */
+/* Face 6 - columns */
 .face:nth-child(6) {
     transform: rotateX(-90deg) translateZ(50px);
 }
-.face:nth-child(6) .dot:nth-of-type(1) { grid-area: a; }
-.face:nth-child(6) .dot:nth-of-type(2) { grid-area: c; }
-.face:nth-child(6) .dot:nth-of-type(3) { grid-area: e; }
-.face:nth-child(6) .dot:nth-of-type(4) { grid-area: f; }
-.face:nth-child(6) .dot:nth-of-type(5) { grid-area: b; }
-.face:nth-child(6) .dot:nth-of-type(6) { grid-area: d; }
+.face:nth-child(6) .dot:nth-of-type(1) { 
+    grid-column: 1;
+    grid-row: 1;
+}
+.face:nth-child(6) .dot:nth-of-type(2) { 
+    grid-column: 1;
+    grid-row: 2;
+}
+.face:nth-child(6) .dot:nth-of-type(3) { 
+    grid-column: 1;
+    grid-row: 3;
+}
+.face:nth-child(6) .dot:nth-of-type(4) { 
+    grid-column: 3;
+    grid-row: 1;
+}
+.face:nth-child(6) .dot:nth-of-type(5) { 
+    grid-column: 3;
+    grid-row: 2;
+}
+.face:nth-child(6) .dot:nth-of-type(6) { 
+    grid-column: 3;
+    grid-row: 3;
+}
 
 .dice.rolling .face {
     background: #d52f2f;
