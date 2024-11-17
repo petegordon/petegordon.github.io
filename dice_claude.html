@@ -279,25 +279,25 @@
 
             // If enough time passed and enough motion, start rolling or stop motion
             
-                if (totalMotion > 2.5) {
-                    if (!isShaking & motionAndTime) {
-                        isShaking = true;
-                        messageElement.textContent = 'Rolling...';
-                        dice1.classList.add('rolling');
-                        dice2.classList.add('rolling');
-                    }
-                } 
-                // If motion is low enough, stop rolling
-                else if (totalMotion < 0.5) {
-                    if (isShaking & motionAndTime) {
-                        isShaking = false;
-                        dice1.classList.remove('rolling');
-                        dice2.classList.remove('rolling');
-                        rollDice();
-                        messageElement.textContent = 'Shake your device to roll the dice!';
-                    }
+            if (totalMotion > 2.5) {
+                if (!isShaking & motionAndTime) {
+                    isShaking = true;
+                    messageElement.textContent = 'Rolling...';
+                    dice1.classList.add('rolling');
+                    dice2.classList.add('rolling');
+                }
+            } 
+            // If motion is low enough, stop rolling
+            else if (totalMotion < 0.5) {
+                if (isShaking & motionAndTime) {
+                    isShaking = false;
+                    dice1.classList.remove('rolling');
+                    dice2.classList.remove('rolling');
+                    rollDice();
+                    messageElement.textContent = 'Shake your device to roll the dice!';
                 }
             }
+            
 
         
             lastX = x;
