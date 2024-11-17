@@ -106,7 +106,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.23</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.24</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -308,28 +308,23 @@
             Max Motion: ${maxMotion.toFixed(2)}
             Motion Time: ${lastFullMotionTimeSpan}ms
             `;
-            // If enough time passed and enough motion, start rolling or stop motion
-            
-            if (totalMotion > sensitivityShake) {
-                if (!isShaking & motionAndTime) {
-                    isShaking = true;
-                    lastFullMotionTime = currentTime
-                    numberOfShakes++
-                    messageElement.textContent = 'Rolling...';
-                    dice1.classList.add('rolling');
-                    dice2.classList.add('rolling');
-                }
+            // If enough time passed and enough motion, start rolling or stop motion            
+            if (!isShaking & motionAndTime) {
+                isShaking = true;
+                lastFullMotionTime = currentTime
+                numberOfShakes++
+                messageElement.textContent = 'Rolling...';
+                dice1.classList.add('rolling');
+                dice2.classList.add('rolling');
             } 
             // If motion is low enough, stop rolling
-            else if (totalMotion < sensitivityStill) {
-                if (isShaking & stillAndTime) {
-                    isShaking = false;
-                    lastFullMotionTime = currentTime
-                    dice1.classList.remove('rolling');
-                    dice2.classList.remove('rolling');
-                    rollDice();
-                    messageElement.textContent = 'Shake your device to roll the dice!';
-                }
+            else if (isShaking & stillAndTime) {
+                isShaking = false;
+                lastFullMotionTime = currentTime
+                dice1.classList.remove('rolling');
+                dice2.classList.remove('rolling');
+                rollDice();
+                messageElement.textContent = 'Shake your device to roll the dice!';
             }
             
 
