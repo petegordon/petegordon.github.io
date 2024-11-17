@@ -26,12 +26,13 @@ body {
     width: 100px;
     height: 100px;
     transform-style: preserve-3d;
-    transition: transform 0.2s linear;
+    transition: none; /* Remove transition to prevent flickering */
+    will-change: transform; /* Optimize for animations */
 }
 
+/* Remove the rolling animation and handle rotation in JavaScript */
 .dice.rolling {
-    transition: transform 0.2s linear;
-    animation: roll 0.6s linear infinite;
+    animation: none;
 }
 
 @keyframes roll {
