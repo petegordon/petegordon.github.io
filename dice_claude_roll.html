@@ -292,15 +292,17 @@ Max Motion: ${maxMotion.toFixed(2)}
 
 
 // Physics constants and variables
-let dicePosition1 = { x: 0, y: 0 };
+let dicePosition1 = { x: window.innerWidth / 3, y: window.innerHeight / 3 };
 let diceVelocity1 = { x: 0, y: 0 };
-let dicePosition2 = { x: 0, y: 0 };
+let dicePosition2 = { x: 2 * window.innerWidth / 3, y: window.innerHeight / 3 };
 let diceVelocity2 = { x: 0, y: 0 };
+let rotation1 = [0, 0, 0];
+let rotation2 = [0, 0, 0];
 const friction = 0.98;
 const gravity = 0.5;
 const bounce = 0.7;
-const diceSize = 100; // Size of dice
-const collisionElasticity = 0.8; // How bouncy dice collisions are
+const diceSize = 100;
+const collisionElasticity = 0.8;
 let viewportWidth = window.innerWidth;
 let viewportHeight = window.innerHeight;
 
@@ -308,9 +310,11 @@ let viewportHeight = window.innerHeight;
 window.addEventListener('resize', () => {
     viewportWidth = window.innerWidth;
     viewportHeight = window.innerHeight;
+    // Reset dice positions on resize
+    dicePosition1 = { x: viewportWidth / 3, y: viewportHeight / 3 };
+    dicePosition2 = { x: 2 * viewportWidth / 3, y: viewportHeight / 3 };
 });
 
-// Check for collision between two dice
 function checkDiceCollision(pos1, pos2) {
     const dx = pos2.x - pos1.x;
     const dy = pos2.y - pos1.y;
@@ -318,9 +322,7 @@ function checkDiceCollision(pos1, pos2) {
     return distance < diceSize;
 }
 
-// Handle collision physics between dice
 function handleCollision(pos1, vel1, pos2, vel2) {
-    // Calculate collision normal
     const dx = pos2.x - pos1.x;
     const dy = pos2.y - pos1.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -329,16 +331,13 @@ function handleCollision(pos1, vel1, pos2, vel2) {
 
     const nx = dx / distance;
     const ny = dy / distance;
-
-    // Calculate relative velocity
+    
     const relativeVelocityX = vel2.x - vel1.x;
     const relativeVelocityY = vel2.y - vel1.y;
     const relativeVelocityDot = (relativeVelocityX * nx + relativeVelocityY * ny);
-
-    // Calculate impulse
+    
     const impulse = 2 * relativeVelocityDot * collisionElasticity;
 
-    // Apply impulse to velocities
     return {
         vel1: {
             x: vel1.x + impulse * nx,
@@ -352,11 +351,11 @@ function handleCollision(pos1, vel1, pos2, vel2) {
 }
 
 function updateDicePhysics(position, velocity, motionX, motionY) {
-    // Add device motion to velocity
-    velocity.x += motionX * 0.5;
-    velocity.y += motionY * 0.5;
+    // Add device motion to velocity (flip X axis for intuitive movement)
+    velocity.x -= motionX * 2;  // Increased multiplier for more responsive movement
+    velocity.y += motionY * 2;  // Increased multiplier for more responsive movement
 
-    // Apply gravity (always pulling down)
+    // Apply gravity
     velocity.y += gravity;
 
     // Apply friction
@@ -392,6 +391,8 @@ function updateDicePhysics(position, velocity, motionX, motionY) {
 }
 
 function updateDice(event) {
+    if (!event.acceleration) return;
+
     // Update positions with physics
     const physics1 = updateDicePhysics(
         dicePosition1, 
@@ -420,7 +421,7 @@ function updateDice(event) {
         diceVelocity1 = newVelocities.vel1;
         diceVelocity2 = newVelocities.vel2;
 
-        // Slightly separate dice to prevent sticking
+        // Separate dice to prevent sticking
         const dx = dicePosition2.x - dicePosition1.x;
         const dy = dicePosition2.y - dicePosition1.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -436,7 +437,17 @@ function updateDice(event) {
         }
     }
 
-    // Update dice positions and rotations
+    // Update rotation while rolling
+    if (isShaking) {
+        rotation1[0] += 10;
+        rotation1[1] += 8;
+        rotation1[2] += 5;
+        rotation2[0] += 8;
+        rotation2[1] += 10;
+        rotation2[2] += 6;
+    }
+
+    // Apply transforms
     requestAnimationFrame(() => {
         dice1.style.transform = `translate(${dicePosition1.x}px, ${dicePosition1.y}px) 
                                rotateX(${rotation1[0]}deg) 
