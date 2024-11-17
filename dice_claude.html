@@ -106,7 +106,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.26</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.27</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -201,6 +201,7 @@
         let isShaking = false;
         let numberOfShakes = 0;
         let maxMotion = 0;
+        let firstMotionRead = true
         let lastX = 0;
         let lastY = 0;
         let lastZ = 0;
@@ -271,10 +272,11 @@ Motion Time: ${lastFullMotionTimeSpan}ms
             const y = event.accelerationIncludingGravity.y;
             const z = event.accelerationIncludingGravity.z;
         
-            if (!lastX) {
+            if (firstMotionRead) {
                 lastX = x;
                 lastY = y;
                 lastZ = z;
+                firstMotionRead = false
                 return;
             }
         
