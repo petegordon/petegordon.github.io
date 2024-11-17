@@ -219,6 +219,7 @@
         // Update debug display
         //debugDiv.textContent = `Motion: ____ Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity} Max Motion: ${maxMotion}`;
         debugDiv.textContent = `
+firstMotionRead: ${firstMotionRead}
 X: 
 Y: 
 Z: 
@@ -306,6 +307,7 @@ Motion Time: ${lastFullMotionTimeSpan}ms
             // Update debug display
             // debugDiv.textContent = `Motion: ${deltaX} ${deltaY} ${deltaX} ${totalMotion.toFixed(2)} Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity} Max Motion: ${maxMotion} Motion Time: ${lastFullMotionTimeSpan}`;            
             debugDiv.textContent = `
+firstMotionRead: ${firstMotionRead}            
 X: ${x.toFixed(2)}
 Y: ${y.toFixed(2)}
 Z: ${z.toFixed(2)}       
