@@ -106,7 +106,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.27</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.28</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -269,9 +269,9 @@ Motion Time: ${lastFullMotionTimeSpan}ms
         let lastFullMotionTime = null
         
         function handleMotion(event) {
-            const x = event.accelerationIncludingGravity.x;
-            const y = event.accelerationIncludingGravity.y;
-            const z = event.accelerationIncludingGravity.z;
+            const x = event.acceleration.x;
+            const y = event.acceleration.y;
+            const z = event.acceleration.z;
         
             if (firstMotionRead) {
                 lastX = x;
