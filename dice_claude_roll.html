@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="dice-styles-roll.css">
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling ROLL v0.46</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling ROLL v0.47</button>
     <div class="message">Shake your device to roll the dice!</div>
 <div class="dice-container">
     <div class="dice" id="dice1">
@@ -294,66 +294,47 @@ Max Motion: ${maxMotion.toFixed(2)}
 // Physics constants and variables
 let dicePosition1 = { x: window.innerWidth / 3, y: window.innerHeight / 3 };
 let diceVelocity1 = { x: 0, y: 0 };
-let dicePosition2 = { x: 2 * window.innerWidth / 3, y: window.innerHeight / 3 };
+let dicePosition2 = { x: 2 * window.innerWidth / 3, y: viewportHeight / 3 };
 let diceVelocity2 = { x: 0, y: 0 };
 let rotation1 = [0, 0, 0];
 let rotation2 = [0, 0, 0];
-const friction = 0.98;
-const gravity = 0.5;
+const friction = 0.95;
+const gravity = 0.2;
 const bounce = 0.7;
 const diceSize = 100;
 const collisionElasticity = 0.8;
 let viewportWidth = window.innerWidth;
 let viewportHeight = window.innerHeight;
+let animationFrameId = null;
+
+// Initialize dice positions
+function initializeDicePositions() {
+    dicePosition1 = { x: viewportWidth / 3, y: viewportHeight / 3 };
+    dicePosition2 = { x: 2 * viewportWidth / 3, y: viewportHeight / 3 };
+    diceVelocity1 = { x: 0, y: 0 };
+    diceVelocity2 = { x: 0, y: 0 };
+    rotation1 = [0, 0, 0];
+    rotation2 = [0, 0, 0];
+}
 
 // Update viewport size on resize
 window.addEventListener('resize', () => {
     viewportWidth = window.innerWidth;
     viewportHeight = window.innerHeight;
-    // Reset dice positions on resize
-    dicePosition1 = { x: viewportWidth / 3, y: viewportHeight / 3 };
-    dicePosition2 = { x: 2 * viewportWidth / 3, y: viewportHeight / 3 };
+    initializeDicePositions();
 });
 
-function checkDiceCollision(pos1, pos2) {
-    const dx = pos2.x - pos1.x;
-    const dy = pos2.y - pos1.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    return distance < diceSize;
-}
-
-function handleCollision(pos1, vel1, pos2, vel2) {
-    const dx = pos2.x - pos1.x;
-    const dy = pos2.y - pos1.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    
-    if (distance === 0) return { vel1, vel2 };
-
-    const nx = dx / distance;
-    const ny = dy / distance;
-    
-    const relativeVelocityX = vel2.x - vel1.x;
-    const relativeVelocityY = vel2.y - vel1.y;
-    const relativeVelocityDot = (relativeVelocityX * nx + relativeVelocityY * ny);
-    
-    const impulse = 2 * relativeVelocityDot * collisionElasticity;
-
-    return {
-        vel1: {
-            x: vel1.x + impulse * nx,
-            y: vel1.y + impulse * ny
-        },
-        vel2: {
-            x: vel2.x - impulse * nx,
-            y: vel2.y - impulse * ny
-        }
-    };
-}
+// Store the last motion values
+let lastMotion = { x: 0, y: 0 };
 
 function updateDicePhysics(position, velocity, motionX, motionY) {
-    // Add device motion to velocity (flip X axis for intuitive movement)
-    velocity.x -= motionX * 2;  // Increased multiplier for more responsive movement
-    velocity.y += motionY * 2;  // Increased multiplier for more responsive movement
+    // Smooth out the motion input
+    lastMotion.x = lastMotion.x * 0.8 + motionX * 0.2;
+    lastMotion.y = lastMotion.y * 0.8 + motionY * 0.2;
+
+    // Add smoothed device motion to velocity
+    velocity.x -= lastMotion.x * 0.5;
+    velocity.y += lastMotion.y * 0.5;
 
     // Apply gravity
     velocity.y += gravity;
@@ -366,29 +347,56 @@ function updateDicePhysics(position, velocity, motionX, motionY) {
     position.x += velocity.x;
     position.y += velocity.y;
 
-    // Bounce off walls
+    // Bounce off walls with minimum velocity threshold
     if (position.x < 0) {
         position.x = 0;
-        velocity.x *= -bounce;
+        velocity.x = Math.abs(velocity.x) * bounce;
     }
     if (position.x > viewportWidth - diceSize) {
         position.x = viewportWidth - diceSize;
-        velocity.x *= -bounce;
+        velocity.x = -Math.abs(velocity.x) * bounce;
     }
 
-    // Bounce off floor/ceiling
+    // Bounce off floor/ceiling with minimum velocity threshold
     if (position.y < 0) {
         position.y = 0;
-        velocity.y *= -bounce;
+        velocity.y = Math.abs(velocity.y) * bounce;
     }
     if (position.y > viewportHeight - diceSize) {
         position.y = viewportHeight - diceSize;
-        velocity.y *= -bounce;
+        velocity.y = -Math.abs(velocity.y) * bounce;
         velocity.x *= 0.95; // Extra friction on floor
     }
 
     return { position, velocity };
 }
+
+// Separate animation loop for smooth rendering
+function animateDice() {
+    if (!isShaking) {
+        rotation1[0] *= 0.95;
+        rotation1[1] *= 0.95;
+        rotation1[2] *= 0.95;
+        rotation2[0] *= 0.95;
+        rotation2[1] *= 0.95;
+        rotation2[2] *= 0.95;
+    }
+
+    dice1.style.transform = `translate3d(${dicePosition1.x}px, ${dicePosition1.y}px, 0) 
+                           rotateX(${rotation1[0]}deg) 
+                           rotateY(${rotation1[1]}deg) 
+                           rotateZ(${rotation1[2]}deg)`;
+    
+    dice2.style.transform = `translate3d(${dicePosition2.x}px, ${dicePosition2.y}px, 0) 
+                           rotateX(${rotation2[0]}deg) 
+                           rotateY(${rotation2[1]}deg) 
+                           rotateZ(${rotation2[2]}deg)`;
+
+    animationFrameId = requestAnimationFrame(animateDice);
+}
+
+// Start animation loop
+animateDice();
 
 function updateDice(event) {
     if (!event.acceleration) return;
@@ -437,28 +445,20 @@ function updateDice(event) {
         }
     }
 
-    // Update rotation while rolling
+    // Update rotation while shaking
     if (isShaking) {
-        rotation1[0] += 10;
-        rotation1[1] += 8;
-        rotation1[2] += 5;
-        rotation2[0] += 8;
-        rotation2[1] += 10;
-        rotation2[2] += 6;
+        rotation1[0] += Math.random() * 20 - 10;
+        rotation1[1] += Math.random() * 20 - 10;
+        rotation1[2] += Math.random() * 20 - 10;
+        rotation2[0] += Math.random() * 20 - 10;
+        rotation2[1] += Math.random() * 20 - 10;
+        rotation2[2] += Math.random() * 20 - 10;
     }
-
-    // Apply transforms
-    requestAnimationFrame(() => {
-        dice1.style.transform = `translate(${dicePosition1.x}px, ${dicePosition1.y}px) 
-                               rotateX(${rotation1[0]}deg) 
-                               rotateY(${rotation1[1]}deg) 
-                               rotateZ(${rotation1[2]}deg)`;
-        dice2.style.transform = `translate(${dicePosition2.x}px, ${dicePosition2.y}px) 
-                               rotateX(${rotation2[0]}deg) 
-                               rotateY(${rotation2[1]}deg) 
-                               rotateZ(${rotation2[2]}deg)`;
-    });
 }
+
+
+// Make sure to call initializeDicePositions when the page loads
+initializeDicePositions();
       
     </script>
 </body>
