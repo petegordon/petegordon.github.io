@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shake to Roll Dice</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #1a2a3a, #2c3e50);
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        .container {
+            perspective: 1000px;
+        }
+
+        .dice {
+            width: 100px;
+            height: 100px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.5s;
+            margin: 20px;
+        }
+
+        .face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #cc0000;
+            border: 2px solid #fff;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            color: white;
+        }
+
+        /* Position each face */
+        .face:nth-child(1) { transform: translateZ(50px); }
+        .face:nth-child(2) { transform: rotateY(180deg) translateZ(50px); }
+        .face:nth-child(3) { transform: rotateY(90deg) translateZ(50px); }
+        .face:nth-child(4) { transform: rotateY(-90deg) translateZ(50px); }
+        .face:nth-child(5) { transform: rotateX(90deg) translateZ(50px); }
+        .face:nth-child(6) { transform: rotateX(-90deg) translateZ(50px); }
+
+        .message {
+            color: white;
+            font-size: 1.2em;
+            margin: 20px;
+            text-align: center;
+        }
+
+        .permission-button {
+            padding: 12px 24px;
+            font-size: 1.1em;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #debugDiv {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            color: #00ff00;
+            font-size: 14px;
+            font-family: monospace;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            white-space: pre;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.01</button>
+    <div class="message">Shake your device to roll the dice!</div>
+    
+    <div class="container">
+        <div class="dice" id="dice1">
+            <div class="face">1</div>
+            <div class="face">2</div>
+            <div class="face">3</div>
+            <div class="face">4</div>
+            <div class="face">5</div>
+            <div class="face">6</div>
+        </div>
+    </div>
+
+    <div id="debugDiv"></div>
+
+    <script>
+        const debugDiv = document.getElementById('debugDiv');
+        const permissionButton = document.getElementById('permissionButton');
+        const messageElement = document.querySelector('.message');
+        const dice1 = document.getElementById('dice1');
+        
+        messageElement.classList.add('hidden');
+
+        let isShaking = false;
+        let lastX = 0;
+        let lastY = 0;
+        let lastZ = 0;
+        let firstMotionRead = true;
+
+        function initializeMotionDetection() {
+            if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                DeviceMotionEvent.requestPermission()
+                    .then(response => {
+                        if (response === 'granted') {
+                            window.addEventListener('devicemotion', handleMotion);
+                            permissionButton.classList.add('hidden');
+                            messageElement.classList.remove('hidden');
+                        } else {
+                            messageElement.textContent = 'Permission denied. Please reload to try again.';
+                            messageElement.classList.remove('hidden');
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                window.addEventListener('devicemotion', handleMotion);
+                permissionButton.classList.add('hidden');
+                messageElement.classList.remove('hidden');
+            }
+        }
+
+        function handleMotion(event) {
+            const x = event.acceleration.x;
+            const y = event.acceleration.y;
+            const z = event.acceleration.z;
+
+            if (firstMotionRead) {
+                lastX = x;
+                lastY = y;
+                lastZ = z;
+                firstMotionRead = false;
+                return;
+            }
+
+            const deltaX = Math.abs(x - lastX);
+            const deltaY = Math.abs(y - lastY);
+            const deltaZ = Math.abs(z - lastZ);
+            const totalMotion = deltaX + deltaY + deltaZ;
+
+            debugDiv.textContent = `Motion Detection v0.1
+------------------
+X: ${x?.toFixed(2)}
+Y: ${y?.toFixed(2)}
+Z: ${z?.toFixed(2)}
+
+Delta X: ${deltaX.toFixed(2)}
+Delta Y: ${deltaY.toFixed(2)}
+Delta Z: ${deltaZ.toFixed(2)}
+
+Total Motion: ${totalMotion.toFixed(2)}
+Is Shaking: ${isShaking}`;
+
+            lastX = x;
+            lastY = y;
+            lastZ = z;
+        }
+
+        permissionButton.addEventListener('click', initializeMotionDetection);
+    </script>
+</body>
+</html>
