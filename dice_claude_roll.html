@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shake to Roll Dice</title>
+<link rel="stylesheet" href="dice-styles.css">
+</head>
+<body>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.45</button>
+    <div class="message">Shake your device to roll the dice!</div>
+<div class="dice-container">
+    <div class="dice" id="dice1">
+        <!-- Face 1 -->
+        <div class="face">
+            <div class="dot"></div>
+        </div>
+        <!-- Face 2 -->
+        <div class="face">
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+        <!-- Face 3 -->
+        <div class="face">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+        <!-- Face 4 -->
+        <div class="face">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+        <!-- Face 5 -->
+        <div class="face">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+        <!-- Face 6 -->
+        <div class="face">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+    </div>
+    <div class="dice" id="dice2">
+        <!-- Face 1 -->
+        <div class="face">
+            <div class="dot"></div>
+        </div>
+        <!-- Face 2 -->
+        <div class="face">
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+        <!-- Face 3 -->
+        <div class="face">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+        <!-- Face 4 -->
+        <div class="face">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+        <!-- Face 5 -->
+        <div class="face">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+        <!-- Face 6 -->
+        <div class="face">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+    </div>
+</div>
+
+    <script>
+        // Debug elements
+        const debugDiv = document.createElement('div');
+        const debugMessageDiv = document.createElement('div');
+        debugDiv.style.cssText = 'position: fixed; bottom: 10px; left: 10px; color: white; font-size: 12px; font-family: monospace; background: rgba(0,0,0,0.5); padding: 5px; white-space: pre;';        
+        debugMessageDiv.style.cssText = 'position: fixed; bottom: 10px; left: 10px; color: white; font-size: 12px; font-family: monospace;';
+        document.body.appendChild(debugDiv);
+        document.body.appendChild(document.createElement('br'));
+        document.body.appendChild(document.createElement('hr'));
+        document.body.appendChild(document.createElement('br'));
+        document.body.appendChild(debugMessageDiv);
+
+        // Variables and constants
+        let isShaking = false;
+        let numberOfShakes = 0;
+        let maxMotion = 0;
+        let firstMotionRead = true;
+        let lastX = 0;
+        let lastY = 0;
+        let lastZ = 0;
+        const sensitivityShake = 5;
+        const timeSensitivityToShake = 250;
+        const sensitivityStill = 0.2;
+        const timeSensitivityToStill = 1200;
+        let lastFullMotionTimeSpan = 0;
+        let lastFullMotionTime = null;
+        const permissionButton = document.getElementById('permissionButton');
+        const messageElement = document.querySelector('.message');
+        const dice1 = document.getElementById('dice1');
+        const dice2 = document.getElementById('dice2');
+
+        // Initial debug display
+        debugDiv.textContent = `
+firstMotionRead: ${firstMotionRead}
+X: 
+Y: 
+Z: 
+last X: 
+last Y: 
+last Z:         
+Motion X: 
+Motion Y: 
+Motion Z: 
+Total Motion: 
+Number of Shakes: ${numberOfShakes}
+Is Shaking: ${isShaking}
+Threshold: ${sensitivityShake}
+Max Motion: ${maxMotion.toFixed(2)}
+Motion Time: ${lastFullMotionTimeSpan}ms
+        `;
+
+        // Initially hide the message
+        messageElement.classList.add('hidden');
+
+        function getRandomRotation() {
+            const rotations = [
+                [0, 0, 0],      // 1
+                [0, 180, 0],    // 2
+                [0, 90, 0],     // 3
+                [0, -90, 0],    // 4
+                [90, 0, 0],     // 5
+                [-90, 0, 0]     // 6
+            ];
+            return rotations[Math.floor(Math.random() * 6)];
+        }
+
+        function rollDice() {
+            // Remove rolling class to allow for smooth final rotation
+            dice1.classList.remove('rolling');
+            dice2.classList.remove('rolling');
+            
+            const rotation1 = getRandomRotation();
+            const rotation2 = getRandomRotation();
+            
+            // Add a small delay to ensure the rolling animation has stopped
+            setTimeout(() => {
+                dice1.style.transform = `rotateX(${rotation1[0]}deg) rotateY(${rotation1[1]}deg) rotateZ(${rotation1[2]}deg)`;
+                dice2.style.transform = `rotateX(${rotation2[0]}deg) rotateY(${rotation2[1]}deg) rotateZ(${rotation2[2]}deg)`;
+            }, 50);
+        }
+        
+        function handleMotion(event) {
+            const x = event.acceleration.x;
+            const y = event.acceleration.y;
+            const z = event.acceleration.z;
+            const currentTime = Date.now();
+
+            // If this is the first reading, initialize last values and exit
+            if (firstMotionRead) {
+                lastX = x;
+                lastY = y;
+                lastZ = z;
+                firstMotionRead = false;
+                return;
+            }
+
+            // Calculate motion deltas
+            const deltaX = Math.abs(x - lastX);
+            const deltaY = Math.abs(y - lastY);
+            const deltaZ = Math.abs(z - lastZ);
+            const totalMotion = deltaX + deltaY + deltaZ;
+
+            if (lastFullMotionTime == null) {
+                lastFullMotionTime = currentTime;
+            }
+            
+            if (totalMotion > maxMotion) {
+                maxMotion = totalMotion;
+            }
+
+            lastFullMotionTimeSpan = currentTime - lastFullMotionTime;
+            let motionAndTime = lastFullMotionTimeSpan > timeSensitivityToShake;
+            let stillAndTime = lastFullMotionTimeSpan > timeSensitivityToStill;
+
+            // Update debug display
+            debugDiv.textContent = `
+firstMotionRead: ${firstMotionRead}            
+X: ${x.toFixed(2)}
+Y: ${y.toFixed(2)}
+Z: ${z.toFixed(2)}       
+last X: ${lastX.toFixed(2)}
+last Y: ${lastY.toFixed(2)}
+last Z: ${lastZ.toFixed(2)}              
+Motion X: ${deltaX.toFixed(2)}
+Motion Y: ${deltaY.toFixed(2)}
+Motion Z: ${deltaZ.toFixed(2)}
+Total Motion: ${totalMotion.toFixed(2)}
+Number of Shakes: ${numberOfShakes}
+Is Shaking: ${isShaking}
+Motion Time: ${lastFullMotionTimeSpan}ms
+Still Check: ${totalMotion < sensitivityStill}
+Time Check: ${motionAndTime}
+Max Motion: ${maxMotion.toFixed(2)}
+            `;
+
+            // Check for shake start/stop
+            if (!isShaking && totalMotion > sensitivityShake) {
+                isShaking = true;
+                lastFullMotionTime = currentTime;
+                numberOfShakes++;
+                messageElement.textContent = 'Rolling...';
+                dice1.classList.add('rolling');
+                dice2.classList.add('rolling');
+            } 
+            else if (isShaking && stillAndTime && totalMotion < sensitivityStill) {
+                isShaking = false;
+                lastFullMotionTime = currentTime;
+                dice1.classList.remove('rolling');
+                dice2.classList.remove('rolling');
+                rollDice();
+                messageElement.textContent = 'Shake your device to roll the dice!';
+            }
+
+            // Update last values after all calculations
+            lastX = x;
+            lastY = y;
+            lastZ = z;
+
+              if (isShaking) {
+                  updateDice(event);
+              }
+        }
+
+        function initializeMotionDetection() {
+            if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                // iOS 13+ devices need permission
+                DeviceMotionEvent.requestPermission()
+                    .then(response => {
+                        if (response === 'granted') {
+                            window.addEventListener('devicemotion', handleMotion);
+                            permissionButton.classList.add('hidden');
+                            messageElement.classList.remove('hidden');
+                        } else {
+                            messageElement.textContent = 'Permission denied. Please reload to try again.';
+                            messageElement.classList.remove('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error(error);
+                        messageElement.textContent = 'Error requesting permission. Please try again.';
+                        messageElement.classList.remove('hidden');
+                    });
+            } else {
+                // Non-iOS devices or older iOS versions
+                window.addEventListener('devicemotion', handleMotion);
+                permissionButton.classList.add('hidden');
+                messageElement.classList.remove('hidden');
+            }
+        }
+
+        // Add click handler to permission button
+        permissionButton.addEventListener('click', initializeMotionDetection);
+
+        // Initial roll
+        rollDice();
+
+
+// Physics constants and variables
+let dicePosition1 = { x: 0, y: 0 };
+let diceVelocity1 = { x: 0, y: 0 };
+let dicePosition2 = { x: 0, y: 0 };
+let diceVelocity2 = { x: 0, y: 0 };
+const friction = 0.98;
+const gravity = 0.5;
+const bounce = 0.7;
+const diceSize = 100; // Size of dice
+const collisionElasticity = 0.8; // How bouncy dice collisions are
+let viewportWidth = window.innerWidth;
+let viewportHeight = window.innerHeight;
+
+// Update viewport size on resize
+window.addEventListener('resize', () => {
+    viewportWidth = window.innerWidth;
+    viewportHeight = window.innerHeight;
+});
+
+// Check for collision between two dice
+function checkDiceCollision(pos1, pos2) {
+    const dx = pos2.x - pos1.x;
+    const dy = pos2.y - pos1.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    return distance < diceSize;
+}
+
+// Handle collision physics between dice
+function handleCollision(pos1, vel1, pos2, vel2) {
+    // Calculate collision normal
+    const dx = pos2.x - pos1.x;
+    const dy = pos2.y - pos1.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance === 0) return { vel1, vel2 };
+
+    const nx = dx / distance;
+    const ny = dy / distance;
+
+    // Calculate relative velocity
+    const relativeVelocityX = vel2.x - vel1.x;
+    const relativeVelocityY = vel2.y - vel1.y;
+    const relativeVelocityDot = (relativeVelocityX * nx + relativeVelocityY * ny);
+
+    // Calculate impulse
+    const impulse = 2 * relativeVelocityDot * collisionElasticity;
+
+    // Apply impulse to velocities
+    return {
+        vel1: {
+            x: vel1.x + impulse * nx,
+            y: vel1.y + impulse * ny
+        },
+        vel2: {
+            x: vel2.x - impulse * nx,
+            y: vel2.y - impulse * ny
+        }
+    };
+}
+
+function updateDicePhysics(position, velocity, motionX, motionY) {
+    // Add device motion to velocity
+    velocity.x += motionX * 0.5;
+    velocity.y += motionY * 0.5;
+
+    // Apply gravity (always pulling down)
+    velocity.y += gravity;
+
+    // Apply friction
+    velocity.x *= friction;
+    velocity.y *= friction;
+
+    // Update position
+    position.x += velocity.x;
+    position.y += velocity.y;
+
+    // Bounce off walls
+    if (position.x < 0) {
+        position.x = 0;
+        velocity.x *= -bounce;
+    }
+    if (position.x > viewportWidth - diceSize) {
+        position.x = viewportWidth - diceSize;
+        velocity.x *= -bounce;
+    }
+
+    // Bounce off floor/ceiling
+    if (position.y < 0) {
+        position.y = 0;
+        velocity.y *= -bounce;
+    }
+    if (position.y > viewportHeight - diceSize) {
+        position.y = viewportHeight - diceSize;
+        velocity.y *= -bounce;
+        velocity.x *= 0.95; // Extra friction on floor
+    }
+
+    return { position, velocity };
+}
+
+function updateDice(event) {
+    // Update positions with physics
+    const physics1 = updateDicePhysics(
+        dicePosition1, 
+        diceVelocity1, 
+        event.acceleration.x, 
+        event.acceleration.y
+    );
+    const physics2 = updateDicePhysics(
+        dicePosition2, 
+        diceVelocity2, 
+        event.acceleration.x, 
+        event.acceleration.y
+    );
+
+    dicePosition1 = physics1.position;
+    diceVelocity1 = physics1.velocity;
+    dicePosition2 = physics2.position;
+    diceVelocity2 = physics2.velocity;
+
+    // Check and handle collisions
+    if (checkDiceCollision(dicePosition1, dicePosition2)) {
+        const newVelocities = handleCollision(
+            dicePosition1, diceVelocity1,
+            dicePosition2, diceVelocity2
+        );
+        diceVelocity1 = newVelocities.vel1;
+        diceVelocity2 = newVelocities.vel2;
+
+        // Slightly separate dice to prevent sticking
+        const dx = dicePosition2.x - dicePosition1.x;
+        const dy = dicePosition2.y - dicePosition1.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < diceSize) {
+            const overlap = (diceSize - distance) / 2;
+            const nx = dx / distance;
+            const ny = dy / distance;
+            
+            dicePosition1.x -= nx * overlap;
+            dicePosition1.y -= ny * overlap;
+            dicePosition2.x += nx * overlap;
+            dicePosition2.y += ny * overlap;
+        }
+    }
+
+    // Update dice positions and rotations
+    requestAnimationFrame(() => {
+        dice1.style.transform = `translate(${dicePosition1.x}px, ${dicePosition1.y}px) 
+                               rotateX(${rotation1[0]}deg) 
+                               rotateY(${rotation1[1]}deg) 
+                               rotateZ(${rotation1[2]}deg)`;
+        dice2.style.transform = `translate(${dicePosition2.x}px, ${dicePosition2.y}px) 
+                               rotateX(${rotation2[0]}deg) 
+                               rotateY(${rotation2[1]}deg) 
+                               rotateZ(${rotation2[2]}deg)`;
+    });
+}
+      
+    </script>
+</body>
+</html>
