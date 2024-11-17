@@ -106,7 +106,7 @@
     </style>
 </head>
 <body>
-    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.16</button>
+    <button id="permissionButton" class="permission-button">Enable Dice Rolling v0.17</button>
     <div class="message">Shake your device to roll the dice!</div>
     <div class="dice-container">
         <div class="dice" id="dice1">
@@ -183,10 +183,13 @@
 
     <script>
 
+        
+        
         // Add this at the start of your JavaScript:
         const debugDiv = document.createElement('div');
         const debugMessageDiv = document.createElement('div');
-        debugDiv.style.cssText = 'position: fixed; bottom: 10px; left: 10px; color: white; font-size: 12px; font-family: monospace;';
+        //debugDiv.style.cssText = 'position: fixed; bottom: 10px; left: 10px; color: white; font-size: 12px; font-family: monospace;';
+        debugDiv.style.cssText = 'position: fixed; bottom: 10px; left: 10px; color: white; font-size: 12px; font-family: monospace; background: rgba(0,0,0,0.5); padding: 5px; white-space: pre;';        
         debugMessageDiv.style.cssText = 'position: fixed; bottom: 10px; left: 10px; color: white; font-size: 12px; font-family: monospace;';
         document.body.appendChild(debugDiv);
         document.body.appendChild(document.createElement('br'))
@@ -203,6 +206,7 @@
         let lastZ = 0;
         const shakeSensitivity = 15;
         const timeSensitivity = 500;
+        let lastFullMotionTimeSpan = 0
         let shakeTimeout;
         const permissionButton = document.getElementById('permissionButton');
         const messageElement = document.querySelector('.message');
@@ -210,8 +214,18 @@
         const dice2 = document.getElementById('dice2');
 
         // Update debug display
-        debugDiv.textContent = `Motion: ____ Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity} Max Motion: ${maxMotion}`;
-        
+        //debugDiv.textContent = `Motion: ____ Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity} Max Motion: ${maxMotion}`;
+        debugDiv.textContent = `
+        Motion X: ${deltaX.toFixed(2)}
+        Motion Y: ${deltaY.toFixed(2)}
+        Motion Z: ${deltaZ.toFixed(2)}
+        Total Motion: ${totalMotion.toFixed(2)}
+        Number of Shakes: ${numberOfShakes}
+        Is Shaking: ${isShaking}
+        Threshold: ${shakeSensitivity}
+        Max Motion: ${maxMotion.toFixed(2)}
+        Motion Time: ${lastFullMotionTimeSpan}ms
+        `;        
         // Initially hide the message
         messageElement.classList.add('hidden');
 
@@ -269,14 +283,24 @@
                 maxMotion = totalMotion
             }
 
-            let lastFullMotionTimeSpan = currentTime - lastFullMotionTime
+            lastFullMotionTimeSpan = currentTime - lastFullMotionTime
             let motionAndTime = false
             if (lastFullMotionTimeSpan > timeSensitivity) {
                 motionAndTime = true
             }
             // Update debug display
-            debugDiv.textContent = `Motion: ${deltaX} ${deltaY} ${deltaX} ${totalMotion.toFixed(2)} Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity} Max Motion: ${maxMotion} Motion Time: ${lastFullMotionTimeSpan}`;
-
+            // debugDiv.textContent = `Motion: ${deltaX} ${deltaY} ${deltaX} ${totalMotion.toFixed(2)} Number of Shakes: ${numberOfShakes} Shaking: ${isShaking} Threshold: ${shakeSensitivity} Max Motion: ${maxMotion} Motion Time: ${lastFullMotionTimeSpan}`;            
+            debugDiv.textContent = `
+            Motion X: ${deltaX.toFixed(2)}
+            Motion Y: ${deltaY.toFixed(2)}
+            Motion Z: ${deltaZ.toFixed(2)}
+            Total Motion: ${totalMotion.toFixed(2)}
+            Number of Shakes: ${numberOfShakes}
+            Is Shaking: ${isShaking}
+            Threshold: ${shakeSensitivity}
+            Max Motion: ${maxMotion.toFixed(2)}
+            Motion Time: ${lastFullMotionTimeSpan}ms
+            `;
             // If enough time passed and enough motion, start rolling or stop motion
             
             if (totalMotion > 2.5) {
