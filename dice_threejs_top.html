@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dice Motion Game - Top Down</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { width: 100%; height: 100% }
+        #instructions {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="instructions">Tilt your device to roll the dice!</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+    <script>
+        let camera, scene, renderer, world;
+        let dice = [];
+        let diceBody = [];
+        let aspectRatio;
+        let tableWidth, tableDepth;
+
+        function initPhysics() {
+            world = new CANNON.World();
+            world.gravity.set(0, -9.82, 0);
+            world.broadphase = new CANNON.NaiveBroadphase();
+            world.solver.iterations = 10;
+
+            // Ground plane
+            const groundShape = new CANNON.Plane();
+            const groundBody = new CANNON.Body({ mass: 0 });
+            groundBody.addShape(groundShape);
+            groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+            world.addBody(groundBody);
+
+            // Calculate wall positions based on camera view
+            aspectRatio = window.innerWidth / window.innerHeight;
+            tableWidth = 20 * aspectRatio;
+            tableDepth = 20;
+
+            // Walls
+            const wallShape = new CANNON.Plane();
+            const wallMaterial = new CANNON.Material();
+
+            // Right wall
+            const rightWall = new CANNON.Body({ mass: 0, material: wallMaterial });
+            rightWall.addShape(wallShape);
+            rightWall.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), -Math.PI / 2);
+            rightWall.position.set(tableWidth/2, 0, 0);
+            world.addBody(rightWall);
+
+            // Left wall
+            const leftWall = new CANNON.Body({ mass: 0, material: wallMaterial });
+            leftWall.addShape(wallShape);
+            leftWall.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), Math.PI / 2);
+            leftWall.position.set(-tableWidth/2, 0, 0);
+            world.addBody(leftWall);
+
+            // Back wall
+            const backWall = new CANNON.Body({ mass: 0, material: wallMaterial });
+            backWall.addShape(wallShape);
+            backWall.position.set(0, 0, -tableDepth/2);
+            world.addBody(backWall);
+
+            // Front wall
+            const frontWall = new CANNON.Body({ mass: 0, material: wallMaterial });
+            frontWall.addShape(wallShape);
+            frontWall.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI);
+            frontWall.position.set(0, 0, tableDepth/2);
+            world.addBody(frontWall);
+        }
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x2c3e50); // Dark blue-gray background
+
+            // Orthographic camera for top-down view
+            aspectRatio = window.innerWidth / window.innerHeight;
+            const frustumSize = 20;
+            camera = new THREE.OrthographicCamera(
+                frustumSize * aspectRatio / -2,
+                frustumSize * aspectRatio / 2,
+                frustumSize / 2,
+                frustumSize / -2,
+                1,
+                1000
+            );
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(0, 20, 0);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+
+            // Position camera for top-down view
+            camera.position.set(0, 20, 0);
+            camera.lookAt(0, 0, 0);
+
+            // Table dimensions
+            tableWidth = 20 * aspectRatio;
+            tableDepth = 20;
+
+            // Create table surface
+            const tableGeometry = new THREE.PlaneGeometry(tableWidth, tableDepth);
+            const tableMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x27ae60, // Green felt color
+                roughness: 0.8,
+                metalness: 0.1
+            });
+            const table = new THREE.Mesh(tableGeometry, tableMaterial);
+            table.rotation.x = -Math.PI / 2;
+            table.receiveShadow = true;
+            scene.add(table);
+
+            // Create walls
+            const wallHeight = 2;
+            const wallMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x95a5a6,
+                roughness: 0.5,
+                metalness: 0.3
+            });
+
+            // Back wall
+            const backWallGeometry = new THREE.BoxGeometry(tableWidth, wallHeight, 0.5);
+            const backWall = new THREE.Mesh(backWallGeometry, wallMaterial);
+            backWall.position.set(0, wallHeight/2, -tableDepth/2);
+            scene.add(backWall);
+
+            // Front wall
+            const frontWall = new THREE.Mesh(backWallGeometry, wallMaterial);
+            frontWall.position.set(0, wallHeight/2, tableDepth/2);
+            scene.add(frontWall);
+
+            // Side walls
+            const sideWallGeometry = new THREE.BoxGeometry(0.5, wallHeight, tableDepth);
+            const leftWall = new THREE.Mesh(sideWallGeometry, wallMaterial);
+            leftWall.position.set(-tableWidth/2, wallHeight/2, 0);
+            scene.add(leftWall);
+
+            const rightWall = new THREE.Mesh(sideWallGeometry, wallMaterial);
+            rightWall.position.set(tableWidth/2, wallHeight/2, 0);
+            scene.add(rightWall);
+
+            // Create dice
+            createDice();
+
+            // Initialize device motion
+            if (window.DeviceMotionEvent) {
+                window.addEventListener('devicemotion', handleDeviceMotion);
+            }
+
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        function createDice() {
+            const diceGeometry = new THREE.BoxGeometry(1, 1, 1);
+            const diceMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xecf0f1,
+                roughness: 0.4,
+                metalness: 0.6
+            });
+
+            // Create 3 dice
+            for (let i = 0; i < 3; i++) {
+                const die = new THREE.Mesh(diceGeometry, diceMaterial);
+                die.castShadow = true;
+                die.receiveShadow = true;
+                scene.add(die);
+                dice.push(die);
+
+                // Create physics body for die
+                const shape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5));
+                const body = new CANNON.Body({ mass: 1 });
+                body.addShape(shape);
+                // Spread dice out more in the initial position
+                body.position.set(
+                    (Math.random() - 0.5) * tableWidth * 0.5,
+                    5 + i * 2,
+                    (Math.random() - 0.5) * tableDepth * 0.5
+                );
+                body.angularVelocity.set(
+                    Math.random() * 10 - 5,
+                    Math.random() * 10 - 5,
+                    Math.random() * 10 - 5
+                );
+                world.addBody(body);
+                diceBody.push(body);
+            }
+        }
+
+        function handleDeviceMotion(event) {
+            // Adjust motion sensitivity
+            const sensitivity = 3;
+            const x = event.accelerationIncludingGravity.x * sensitivity;
+            const y = event.accelerationIncludingGravity.y * sensitivity;
+            
+            // Update gravity based on device tilt
+            // Note: We're mapping the device's x/y tilt to the table's x/z axes
+            world.gravity.set(x, -9.82, y);
+        }
+
+        function onWindowResize() {
+            aspectRatio = window.innerWidth / window.innerHeight;
+            const frustumSize = 20;
+            
+            camera.left = -frustumSize * aspectRatio / 2;
+            camera.right = frustumSize * aspectRatio / 2;
+            camera.top = frustumSize / 2;
+            camera.bottom = -frustumSize / 2;
+            
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            // Update table and wall positions
+            tableWidth = 20 * aspectRatio;
+            // Update physics bodies for walls...
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            world.step(1/60);
+
+            // Update dice positions
+            for (let i = 0; i < dice.length; i++) {
+                dice[i].position.copy(diceBody[i].position);
+                dice[i].quaternion.copy(diceBody[i].quaternion);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        initPhysics();
+        init();
+        animate();
+    </script>
+</body>
+</html>
