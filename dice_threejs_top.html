@@ -32,6 +32,55 @@
         let aspectRatio;
         let tableWidth, tableDepth;
 
+        function createDiceMaterials() {
+            // Create materials for dice faces
+            const materials = [];
+            const loader = new THREE.TextureLoader();
+            
+            // Create canvas for each dice face
+            for (let i = 1; i <= 6; i++) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 128;
+                canvas.height = 128;
+                const ctx = canvas.getContext('2d');
+                
+                // Dark red background with metallic look
+                ctx.fillStyle = '#8B0000';
+                ctx.fillRect(0, 0, 128, 128);
+                
+                // White dots
+                ctx.fillStyle = '#FFFFFF';
+                
+                // Dot positions for each face
+                const dotPositions = {
+                    1: [[64, 64]],
+                    2: [[32, 32], [96, 96]],
+                    3: [[32, 32], [64, 64], [96, 96]],
+                    4: [[32, 32], [32, 96], [96, 32], [96, 96]],
+                    5: [[32, 32], [32, 96], [64, 64], [96, 32], [96, 96]],
+                    6: [[32, 32], [32, 64], [32, 96], [96, 32], [96, 64], [96, 96]]
+                };
+                
+                // Draw dots for current face
+                const dots = dotPositions[i];
+                dots.forEach(([x, y]) => {
+                    ctx.beginPath();
+                    ctx.arc(x, y, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                
+                // Create texture from canvas
+                const texture = new THREE.CanvasTexture(canvas);
+                materials.push(new THREE.MeshStandardMaterial({
+                    map: texture,
+                    metalness: 0.8,
+                    roughness: 0.2,
+                }));
+            }
+            
+            return materials;
+        }
+
         function initPhysics() {
             world = new CANNON.World();
             world.gravity.set(0, -9.82, 0);
@@ -45,7 +94,6 @@
             groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
             world.addBody(groundBody);
 
-            // Calculate wall positions based on camera view
             aspectRatio = window.innerWidth / window.innerHeight;
             tableWidth = 20 * aspectRatio;
             tableDepth = 20;
@@ -71,6 +119,7 @@
             // Back wall
             const backWall = new CANNON.Body({ mass: 0, material: wallMaterial });
             backWall.addShape(wallShape);
+            backWall.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), 0);
             backWall.position.set(0, 0, -tableDepth/2);
             world.addBody(backWall);
 
@@ -84,9 +133,8 @@
 
         function init() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x2c3e50); // Dark blue-gray background
+            scene.background = new THREE.Color(0x1a1a1a); // Dark background
 
-            // Orthographic camera for top-down view
             aspectRatio = window.innerWidth / window.innerHeight;
             const frustumSize = 20;
             camera = new THREE.OrthographicCamera(
@@ -101,41 +149,42 @@
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             document.body.appendChild(renderer.domElement);
 
             // Lights
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
             scene.add(ambientLight);
 
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(0, 20, 0);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(5, 20, 5);
             directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
             scene.add(directionalLight);
 
-            // Position camera for top-down view
             camera.position.set(0, 20, 0);
             camera.lookAt(0, 0, 0);
 
-            // Table dimensions
             tableWidth = 20 * aspectRatio;
             tableDepth = 20;
 
-            // Create table surface
+            // Create table surface with dark green felt
             const tableGeometry = new THREE.PlaneGeometry(tableWidth, tableDepth);
             const tableMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x27ae60, // Green felt color
-                roughness: 0.8,
-                metalness: 0.1
+                color: 0x0a4012, // Dark felt green
+                roughness: 1,
+                metalness: 0
             });
             const table = new THREE.Mesh(tableGeometry, tableMaterial);
             table.rotation.x = -Math.PI / 2;
             table.receiveShadow = true;
             scene.add(table);
 
-            // Create walls
-            const wallHeight = 2;
+            // Create visible walls
+            const wallHeight = 1;
             const wallMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x95a5a6,
+                color: 0x2c3e50,
                 roughness: 0.5,
                 metalness: 0.3
             });
@@ -144,27 +193,33 @@
             const backWallGeometry = new THREE.BoxGeometry(tableWidth, wallHeight, 0.5);
             const backWall = new THREE.Mesh(backWallGeometry, wallMaterial);
             backWall.position.set(0, wallHeight/2, -tableDepth/2);
+            backWall.castShadow = true;
+            backWall.receiveShadow = true;
             scene.add(backWall);
 
             // Front wall
             const frontWall = new THREE.Mesh(backWallGeometry, wallMaterial);
             frontWall.position.set(0, wallHeight/2, tableDepth/2);
+            frontWall.castShadow = true;
+            frontWall.receiveShadow = true;
             scene.add(frontWall);
 
             // Side walls
             const sideWallGeometry = new THREE.BoxGeometry(0.5, wallHeight, tableDepth);
             const leftWall = new THREE.Mesh(sideWallGeometry, wallMaterial);
             leftWall.position.set(-tableWidth/2, wallHeight/2, 0);
+            leftWall.castShadow = true;
+            leftWall.receiveShadow = true;
             scene.add(leftWall);
 
             const rightWall = new THREE.Mesh(sideWallGeometry, wallMaterial);
             rightWall.position.set(tableWidth/2, wallHeight/2, 0);
+            rightWall.castShadow = true;
+            rightWall.receiveShadow = true;
             scene.add(rightWall);
 
-            // Create dice
             createDice();
 
-            // Initialize device motion
             if (window.DeviceMotionEvent) {
                 window.addEventListener('devicemotion', handleDeviceMotion);
             }
@@ -174,25 +229,23 @@
 
         function createDice() {
             const diceGeometry = new THREE.BoxGeometry(1, 1, 1);
-            const diceMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0xecf0f1,
-                roughness: 0.4,
-                metalness: 0.6
-            });
+            const diceMaterials = createDiceMaterials();
 
             // Create 3 dice
             for (let i = 0; i < 3; i++) {
-                const die = new THREE.Mesh(diceGeometry, diceMaterial);
+                const die = new THREE.Mesh(diceGeometry, diceMaterials);
                 die.castShadow = true;
                 die.receiveShadow = true;
                 scene.add(die);
                 dice.push(die);
 
-                // Create physics body for die
                 const shape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5));
-                const body = new CANNON.Body({ mass: 1 });
+                const body = new CANNON.Body({ 
+                    mass: 1,
+                    linearDamping: 0.3,
+                    angularDamping: 0.3
+                });
                 body.addShape(shape);
-                // Spread dice out more in the initial position
                 body.position.set(
                     (Math.random() - 0.5) * tableWidth * 0.5,
                     5 + i * 2,
@@ -209,13 +262,11 @@
         }
 
         function handleDeviceMotion(event) {
-            // Adjust motion sensitivity
             const sensitivity = 3;
-            const x = event.accelerationIncludingGravity.x * sensitivity;
+            // Invert x-axis for correct left/right tilt
+            const x = -event.accelerationIncludingGravity.x * sensitivity;
             const y = event.accelerationIncludingGravity.y * sensitivity;
             
-            // Update gravity based on device tilt
-            // Note: We're mapping the device's x/y tilt to the table's x/z axes
             world.gravity.set(x, -9.82, y);
         }
 
@@ -231,16 +282,13 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
 
-            // Update table and wall positions
             tableWidth = 20 * aspectRatio;
-            // Update physics bodies for walls...
         }
 
         function animate() {
             requestAnimationFrame(animate);
             world.step(1/60);
 
-            // Update dice positions
             for (let i = 0; i < dice.length; i++) {
                 dice[i].position.copy(diceBody[i].position);
                 dice[i].quaternion.copy(diceBody[i].quaternion);
