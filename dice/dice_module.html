@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Red Glass Dice</title>
+    <style>
+        body { margin: 0; }
+        canvas { 
+            position: fixed;
+            bottom: 0;
+            width: 100vw;
+            height: 25vh;
+        }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        var scene = new THREE.Scene();
+        var camera = new THREE.PerspectiveCamera(75, window.innerWidth / (window.innerHeight * 0.25), 0.1, 1000);
+        var renderer = new THREE.WebGLRenderer({ antialias: true });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight * 0.25);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+        
+        scene.background = new THREE.Color(0x0a4012);
+
+        function createDiceMaterial() {
+            var materials = [];
+            var dotPositions = [
+                [[64, 64]],
+                [[32, 32], [96, 96]],
+                [[32, 32], [64, 64], [96, 96]],
+                [[32, 32], [32, 96], [96, 32], [96, 96]],
+                [[32, 32], [32, 96], [64, 64], [96, 32], [96, 96]],
+                [[32, 32], [32, 64], [32, 96], [96, 32], [96, 64], [96, 96]]
+            ];
+
+            for (var i = 0; i < 6; i++) {
+                var canvas = document.createElement('canvas');
+                canvas.width = 128;
+                canvas.height = 128;
+                var ctx = canvas.getContext('2d');
+
+                ctx.fillStyle = '#8B0000';
+                ctx.fillRect(0, 0, 128, 128);
+
+                ctx.fillStyle = '#ffffff';
+                var dots = dotPositions[i];
+                for (var j = 0; j < dots.length; j++) {
+                    ctx.beginPath();
+                    ctx.arc(dots[j][0], dots[j][1], 12, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                var texture = new THREE.CanvasTexture(canvas);
+                materials.push(new THREE.MeshStandardMaterial({
+                    map: texture,
+                    metalness: 0.7,
+                    roughness: 0.2
+                }));
+            }
+            return materials;
+        }
+        
+        var geometry = new THREE.BoxGeometry(6, 6, 6);
+        var materials = createDiceMaterial();
+        
+        var dice1 = new THREE.Mesh(geometry, materials);
+        var dice2 = new THREE.Mesh(geometry, materials);
+        dice1.position.x = -6.5;
+        dice2.position.x = 6.5;
+        
+        scene.add(dice1);
+        scene.add(dice2);
+        
+        var ambient = new THREE.AmbientLight(0xffffff, 2.0);
+        scene.add(ambient);
+        
+        var positions = [[-5,3,-5], [5,3,-5], [-5,3,5], [5,3,5]];
+        positions.forEach(function(pos) {
+            var light = new THREE.PointLight(0xffffff, 1.0);
+            light.position.set(pos[0], pos[1], pos[2]);
+            scene.add(light);
+        });
+        
+        camera.position.z = 12;
+        camera.position.y = 1;
+        camera.lookAt(0, 0, 0);
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            dice1.rotation.x += 0.01;
+            dice1.rotation.y += 0.01;
+            dice2.rotation.x += 0.01;
+            dice2.rotation.y += 0.01;
+            renderer.render(scene, camera);
+        }
+        
+        animate();
+        
+        window.addEventListener('resize', function() {
+            camera.aspect = window.innerWidth / (window.innerHeight * 0.25);
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight * 0.25);
+        });
+    </script>
+</body>
+</html>
