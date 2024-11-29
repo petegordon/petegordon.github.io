@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dice Motion</title>
+    <style>
+        body { margin: 0; }
+        canvas { 
+            position: fixed;
+            bottom: 0;
+            width: 100vw;
+            height: 25vh;
+        }
+        #debug {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            font-family: monospace;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="debug">Waiting for motion...</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+    <script>
+        // Paste the entire DiceGame class here
+        class DiceGame {
+            constructor() {
+                this.scene = new THREE.Scene();
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.dice = [];
+                this.motionHistory = [];
+                this.shakeThreshold = 15;
+                this.isShaking = false;
+                this.maxRotationSpeed = 5; // Cap rotation speed
+                this.smoothAcceleration = 0.1; // Smooth acceleration factor
+                
+                this.initPhysics();
+                this.initScene();
+                this.initLights();
+                this.createDice();
+                this.setupMotionHandling();
+                this.animate();
+            }
+
+            initScene() {
+                this.scene.background = new THREE.Color(0x0a4012);
+                const aspect = window.innerWidth / (window.innerHeight * 0.25);
+                this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+                this.renderer.setSize(window.innerWidth, window.innerHeight * 0.25);
+                document.body.appendChild(this.renderer.domElement);
+                this.camera.position.set(0, 8, 12);
+                this.camera.lookAt(0, 3, 0);
+            }            
+
+            initLights() {
+                this.scene.add(new THREE.AmbientLight(0xffffff, 2.0));
+                [[-5,3,-5], [5,3,-5], [-5,3,5], [5,3,5]].forEach(pos => {
+                    const light = new THREE.PointLight(0xffffff, 1.0);
+                    light.position.set(...pos);
+                    this.scene.add(light);
+                });
+            }
+
+            initPhysics() {
+                this.world = new CANNON.World();
+                this.world.gravity.set(0, 0, 0); // Remove gravity
+                this.world.broadphase = new CANNON.NaiveBroadphase();
+                this.world.solver.iterations = 10;
+                
+                // Only keep side walls, remove ground plane
+                const wallMaterial = new CANNON.Material({ restitution: 0.5 });
+                const wallShape = new CANNON.Plane();
+                
+                [[-8, 0, 0, 0, Math.PI/2, 0], 
+                [8, 0, 0, 0, -Math.PI/2, 0]].forEach(([x, y, z, rx, ry, rz]) => {
+                    const wallBody = new CANNON.Body({ mass: 0, material: wallMaterial });
+                    wallBody.addShape(wallShape);
+                    wallBody.position.set(x, y, z);
+                    wallBody.quaternion.setFromEuler(rx, ry, rz);
+                    this.world.addBody(wallBody);
+                });
+            }
+
+            createDiceMaterial() {
+                const positions = [
+                    [[64, 64]],
+                    [[32, 32], [96, 96]],
+                    [[32, 32], [64, 64], [96, 96]],
+                    [[32, 32], [32, 96], [96, 32], [96, 96]],
+                    [[32, 32], [32, 96], [64, 64], [96, 32], [96, 96]],
+                    [[32, 32], [32, 64], [32, 96], [96, 32], [96, 64], [96, 96]]
+                ];
+
+                return positions.map(dots => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = canvas.height = 128;
+                    const ctx = canvas.getContext('2d');
+
+                    ctx.fillStyle = '#8B0000';
+                    ctx.fillRect(0, 0, 128, 128);
+
+                    ctx.fillStyle = '#ffffff';
+                    dots.forEach(([x, y]) => {
+                        ctx.beginPath();
+                        ctx.arc(x, y, 12, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+
+                    return new THREE.MeshStandardMaterial({
+                        map: new THREE.CanvasTexture(canvas),
+                        metalness: 0.7,
+                        roughness: 0.2
+                    });
+                });
+            }
+
+            createDice() {
+                const geometry = new THREE.BoxGeometry(6, 6, 6);
+                const materials = this.createDiceMaterial();
+                const shape = new CANNON.Box(new CANNON.Vec3(3, 3, 3));
+
+                [-6.5, 6.5].forEach(x => {
+                    const diceMesh = new THREE.Mesh(geometry, materials);
+                    diceMesh.position.set(x, 3, 0);
+                    this.scene.add(diceMesh);
+
+                    const diceBody = new CANNON.Body({
+                        mass: 1,
+                        material: new CANNON.Material({ restitution: 0.5 }),
+                        shape: shape,
+                        linearDamping: 0.8, // Increased damping for smoother deceleration
+                        angularDamping: 0.8
+                    });
+                    diceBody.position.set(x, 3, 0);
+                    this.world.addBody(diceBody);
+
+                    this.dice.push({
+                        mesh: diceMesh,
+                        body: diceBody,
+                        targetVelocity: new CANNON.Vec3(0, 0, 0)
+                    });
+                });
+            }
+
+            detectShake(acceleration) {
+                const totalAcceleration = Math.sqrt(
+                    acceleration.x * acceleration.x +
+                    acceleration.y * acceleration.y
+                );
+
+                this.motionHistory.push(totalAcceleration);
+                if (this.motionHistory.length > 10) {
+                    this.motionHistory.shift();
+                }
+
+                const jerk = Math.abs(
+                    this.motionHistory[this.motionHistory.length - 1] -
+                    this.motionHistory[0]
+                );
+
+                return jerk > this.shakeThreshold;
+            }
+
+            setupMotionHandling() {
+                let lastUpdate = Date.now();
+                const handleMotion = (event) => {
+                    const now = Date.now();
+                    if (now - lastUpdate < 50) return;
+                    lastUpdate = now;
+
+                    const acceleration = {
+                        x: event.accelerationIncludingGravity.x,
+                        y: event.accelerationIncludingGravity.y
+                    };
+
+                    this.isShaking = this.detectShake(acceleration);
+
+                    if (this.isShaking) {
+                        const force = 100;
+                        this.dice.forEach(die => {
+                            // Smooth acceleration
+                            const randomAngle = Math.random() * Math.PI * 2;
+                            const targetX = Math.cos(randomAngle) * force;
+                            die.targetVelocity.x = targetX;
+
+                            // Cap rotation speed
+                            const angularVel = new CANNON.Vec3(
+                                (Math.random() - 0.5) * this.maxRotationSpeed,
+                                (Math.random() - 0.5) * this.maxRotationSpeed,
+                                (Math.random() - 0.5) * this.maxRotationSpeed
+                            );
+                            die.body.angularVelocity.copy(angularVel);
+                        });
+                    }
+                };
+
+                if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                    const button = document.createElement('button');
+                    button.textContent = 'Enable Motion';
+                    button.style.cssText = 'position:fixed;z-index:1000;top:20px;left:50%;transform:translateX(-50%);padding:10px;';
+                    document.body.appendChild(button);
+                    
+                    button.addEventListener('click', async () => {
+                        const permission = await DeviceMotionEvent.requestPermission();
+                        if (permission === 'granted') {
+                            window.addEventListener('devicemotion', handleMotion);
+                            button.remove();
+                        }
+                    });
+                } else {
+                    window.addEventListener('devicemotion', handleMotion);
+                }
+            }
+
+            animate() {
+                requestAnimationFrame(this.animate.bind(this));
+                
+                this.dice.forEach(die => {
+                    // Apply smooth acceleration
+                    const currentVel = die.body.velocity;
+                    const targetVel = die.targetVelocity;
+                    currentVel.x += (targetVel.x - currentVel.x) * this.smoothAcceleration;
+                    
+                    // Cap rotation speed
+                    const angularVel = die.body.angularVelocity;
+                    angularVel.x = Math.min(Math.max(angularVel.x, -this.maxRotationSpeed), this.maxRotationSpeed);
+                    angularVel.y = Math.min(Math.max(angularVel.y, -this.maxRotationSpeed), this.maxRotationSpeed);
+                    angularVel.z = Math.min(Math.max(angularVel.z, -this.maxRotationSpeed), this.maxRotationSpeed);
+                });
+
+                this.world.step(1/60);
+                this.dice.forEach(die => {
+                    die.mesh.position.copy(die.body.position);
+                    die.mesh.quaternion.copy(die.body.quaternion);
+                    die.body.position.y = 3;
+                    die.body.position.z = 0;
+                    die.body.velocity.z = 0;
+                });
+                
+                document.getElementById('debug').innerHTML = 
+                    `Shake: ${this.isShaking ? 'Active' : 'Inactive'}<br>` +
+                    `Jerk: ${this.motionHistory[this.motionHistory.length - 1]?.toFixed(2) || 0}<br>` +
+                    `X1: ${this.dice[0].body.position.x.toFixed(1)}<br>` +
+                    `X2: ${this.dice[1].body.position.x.toFixed(1)}`;
+                
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        const game = new DiceGame();
+        window.addEventListener('resize', () => game.resize());
+    </script>
+</body>
+</html>
