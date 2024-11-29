@@ -139,6 +139,7 @@
                         linearDamping: 0.5,
                         angularDamping: 0.5
                     });
+                    diceBody.sleep(); // Puts body to sleep initially
                     diceBody.position.set(x, 3, 0);
                     this.world.addBody(diceBody);
 
@@ -182,6 +183,9 @@
 
                     this.isShaking = this.detectShake(acceleration);
 
+                    if (this.isShaking && die.body.sleepState === CANNON.Body.SLEEPING) {
+                        die.body.wakeUp();
+                    }                    
                     if (this.isShaking) {
                         const force = 150;
                         this.dice.forEach(die => {
@@ -232,6 +236,9 @@
                     if (Math.abs(die.body.position.z) > 1) {
                         die.body.position.z = Math.sign(die.body.position.z);
                     }
+                    if (!this.isShaking && die.body.sleepState === CANNON.Body.AWAKE) {
+                        die.body.sleep();
+                    }                    
                 });
                 
                 document.getElementById('debug').innerHTML = 
