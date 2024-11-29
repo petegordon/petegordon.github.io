@@ -38,6 +38,7 @@
                 this.isShaking = false;
                 this.maxRotationSpeed = 5; // Cap rotation speed
                 this.smoothAcceleration = 0.1; // Smooth acceleration factor
+                this.collisionCount = 0;
                 
                 this.initPhysics();
                 this.initScene();
@@ -68,21 +69,30 @@
 
             initPhysics() {
                 this.world = new CANNON.World();
-                this.world.gravity.set(0, 0, 0); // Remove gravity
+                this.world.gravity.set(0, 0, 0);
                 this.world.broadphase = new CANNON.NaiveBroadphase();
                 this.world.solver.iterations = 10;
                 
-                // Only keep side walls, remove ground plane
-                const wallMaterial = new CANNON.Material({ restitution: 0.5 });
+                const wallMaterial = new CANNON.Material({ 
+                    restitution: 0.5,
+                    friction: 0.5  // Add friction
+                });
                 const wallShape = new CANNON.Plane();
                 
                 [[-8, 0, 0, 0, Math.PI/2, 0], 
                 [8, 0, 0, 0, -Math.PI/2, 0]].forEach(([x, y, z, rx, ry, rz]) => {
-                    const wallBody = new CANNON.Body({ mass: 0, material: wallMaterial });
+                    const wallBody = new CANNON.Body({ 
+                        mass: 0, 
+                        material: wallMaterial
+                    });
                     wallBody.addShape(wallShape);
                     wallBody.position.set(x, y, z);
                     wallBody.quaternion.setFromEuler(rx, ry, rz);
                     this.world.addBody(wallBody);
+                });
+
+                this.world.addEventListener('beginContact', event => {
+                    this.collisionCount = (this.collisionCount || 0) + 1;
                 });
             }
 
@@ -219,35 +229,14 @@
 
             animate() {
                 requestAnimationFrame(this.animate.bind(this));
-                
-                this.dice.forEach(die => {
-                    // Apply smooth acceleration
-                    const currentVel = die.body.velocity;
-                    const targetVel = die.targetVelocity;
-                    currentVel.x += (targetVel.x - currentVel.x) * this.smoothAcceleration;
-                    
-                    // Cap rotation speed
-                    const angularVel = die.body.angularVelocity;
-                    angularVel.x = Math.min(Math.max(angularVel.x, -this.maxRotationSpeed), this.maxRotationSpeed);
-                    angularVel.y = Math.min(Math.max(angularVel.y, -this.maxRotationSpeed), this.maxRotationSpeed);
-                    angularVel.z = Math.min(Math.max(angularVel.z, -this.maxRotationSpeed), this.maxRotationSpeed);
-                });
-
-                this.world.step(1/60);
-                this.dice.forEach(die => {
-                    die.mesh.position.copy(die.body.position);
-                    die.mesh.quaternion.copy(die.body.quaternion);
-                    die.body.position.y = 3;
-                    die.body.position.z = 0;
-                    die.body.velocity.z = 0;
-                });
-                
                 document.getElementById('debug').innerHTML = 
                     `Shake: ${this.isShaking ? 'Active' : 'Inactive'}<br>` +
-                    `Jerk: ${this.motionHistory[this.motionHistory.length - 1]?.toFixed(2) || 0}<br>` +
-                    `X1: ${this.dice[0].body.position.x.toFixed(1)}<br>` +
-                    `X2: ${this.dice[1].body.position.x.toFixed(1)}`;
-                
+                    `Initial Positions: (${this.dice[0].body.initX.toFixed(1)}, ${this.dice[1].body.initX.toFixed(1)})<br>` +
+                    `Current X: (${this.dice[0].body.position.x.toFixed(1)}, ${this.dice[1].body.position.x.toFixed(1)})<br>` +
+                    `Velocities: (${this.dice[0].body.velocity.x.toFixed(2)}, ${this.dice[1].body.velocity.x.toFixed(2)})<br>` +
+                    `Forces: (${this.dice[0].body.force.x.toFixed(2)}, ${this.dice[1].body.force.x.toFixed(2)})<br>` +
+                    `Collisions: ${this.collisionCount || 0}`;
+    
                 this.renderer.render(this.scene, this.camera);
             }
         }
