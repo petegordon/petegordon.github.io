@@ -83,7 +83,7 @@
 
             initPhysics() {
                 this.world = new CANNON.World();
-                this.world.gravity.set(0, -9.82, 0);
+                this.world.gravity.set(0, 0, -9,67); // Z axis, positive for backward
                 this.world.broadphase = new CANNON.NaiveBroadphase();
                 this.world.solver.iterations = 20;
                 
@@ -91,12 +91,12 @@
                 const wallShape = new CANNON.Plane();
                 
                 const walls = [
-                    [-10, 0, 0, 0, Math.PI/2, 0],    // Left
-                    [10, 0, 0, 0, -Math.PI/2, 0],    // Right
+                    [-40, 0, 0, 0, Math.PI/2, 0],    // Left
+                    [40, 0, 0, 0, -Math.PI/2, 0],    // Right
                     [0, -3, 0, -Math.PI/2, 0, 0],    // Floor
-                    [0, 9, 0, Math.PI/2, 0, 0],      // Ceiling
-                    [0, 0, -10, 0, 0, 0],            // Back
-                    [0, 0, 10, Math.PI, 0, 0],       // Front
+                    [0, 12, 0, Math.PI/2, 0, 0],      // Ceiling
+                    [0, 0, -12, 0, 0, 0],            // Back
+                    [0, 0, 6, Math.PI, 0, 0],       // Front
                 ];
                 
                 walls.forEach(([x, y, z, rx, ry, rz]) => {
