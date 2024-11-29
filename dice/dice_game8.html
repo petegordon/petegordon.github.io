@@ -62,7 +62,7 @@
                 this.camera.lookAt(0, 3, 0);
 
                 // Add visible box
-                const boxGeometry = new THREE.BoxGeometry(20, 12, 20);
+                const boxGeometry = new THREE.BoxGeometry(32, 16, 10);
                 const edges = new THREE.EdgesGeometry(boxGeometry);
                 const line = new THREE.LineSegments(
                     edges,
@@ -91,12 +91,12 @@
                 const wallShape = new CANNON.Plane();
                 
                 const walls = [
-                    [-40, 0, 0, 0, Math.PI/2, 0],    // Left
-                    [40, 0, 0, 0, -Math.PI/2, 0],    // Right
-                    [0, -3, 0, -Math.PI/2, 0, 0],    // Floor
-                    [0, 12, 0, Math.PI/2, 0, 0],      // Ceiling
-                    [0, 0, -12, 0, 0, 0],            // Back
-                    [0, 0, 6, Math.PI, 0, 0],       // Front
+                    [-16, 0, 0, 0, Math.PI/2, 0],    // Left
+                    [16, 0, 0, 0, -Math.PI/2, 0],    // Right
+                    [0, -8, 0, -Math.PI/2, 0, 0],    // Floor
+                    [0, 8, 0, Math.PI/2, 0, 0],      // Ceiling
+                    [0, 0, -6, 0, 0, 0],            // Back
+                    [0, 0, 4, Math.PI, 0, 0],       // Front
                 ];
                 
                 walls.forEach(([x, y, z, rx, ry, rz]) => {
