@@ -73,32 +73,24 @@
 
             initPhysics() {
                 this.world = new CANNON.World();
-                this.world.gravity.set(0, -9.82, 0); // Add gravity
+                this.world.gravity.set(0, -9.82, 0);
                 this.world.broadphase = new CANNON.NaiveBroadphase();
-                this.world.solver.iterations = 20; // Better collision handling
+                this.world.solver.iterations = 20;
                 
-                // Add floor
-                const floorBody = new CANNON.Body({
-                    mass: 0,
-                    material: new CANNON.Material({ restitution: 0.3, friction: 0.5 })
-                });
-                floorBody.addShape(new CANNON.Plane());
-                floorBody.quaternion.setFromEuler(-Math.PI/2, 0, 0);
-                floorBody.position.y = -2;
-                this.world.addBody(floorBody);
-
-                const wallMaterial = new CANNON.Material({ 
-                    restitution: 0.5,
-                    friction: 0.5  // Add friction
-                });
+                const wallMaterial = new CANNON.Material({ restitution: 0.5, friction: 0.5 });
                 const wallShape = new CANNON.Plane();
                 
-                [[-8, 0, 0, 0, Math.PI/2, 0], 
-                [8, 0, 0, 0, -Math.PI/2, 0]].forEach(([x, y, z, rx, ry, rz]) => {
-                    const wallBody = new CANNON.Body({ 
-                        mass: 0, 
-                        material: wallMaterial
-                    });
+                const walls = [
+                    [-8, 0, 0, 0, Math.PI/2, 0],    // Left
+                    [8, 0, 0, 0, -Math.PI/2, 0],    // Right
+                    [0, -2, 0, -Math.PI/2, 0, 0],   // Floor
+                    [0, 8, 0, Math.PI/2, 0, 0],     // Ceiling
+                    [0, 0, -8, 0, 0, 0],            // Back
+                    [0, 0, 8, Math.PI, 0, 0],       // Front
+                ];
+                
+                walls.forEach(([x, y, z, rx, ry, rz]) => {
+                    const wallBody = new CANNON.Body({ mass: 0, material: wallMaterial });
                     wallBody.addShape(wallShape);
                     wallBody.position.set(x, y, z);
                     wallBody.quaternion.setFromEuler(rx, ry, rz);
