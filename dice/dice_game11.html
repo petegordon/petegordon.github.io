@@ -50,6 +50,10 @@
 </head>
 <body>
     <div id="debug">Waiting for motion...</div>
+    // Add this to the HTML body, after the debug div:
+    <button id="throwButton" class="motion-button" style="right: 10px; left: auto; background: #d32f2f;">
+        Test Throw
+    </button>
     <canvas id="upperCanvas"></canvas>
     <canvas id="lowerCanvas"></canvas>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -76,7 +80,7 @@
                 this.minShakeTime = 1000;
                 this.isShaking = false;
                 this.throwDetected = false;
-                
+
                 this.maxRotationSpeed = 15;
                 this.smoothAcceleration = 0.3;
 
@@ -87,6 +91,24 @@
                 this.createDice();  // Add this line
                 this.setupMotionHandling();
                 this.animate();  // Add this line
+
+                // Add this to the constructor, after setupMotionHandling():
+                document.getElementById('throwButton').addEventListener('click', () => {
+                    if (this.isShaking && !this.throwDetected) {
+                        this.throwDetected = true;
+                        this.lowerWorld.removeBody(this.ceiling);
+                        
+                        this.dice.forEach(die => {
+                            die.body.velocity.y += 40;
+                            die.body.velocity.z -= 15;
+                            die.body.angularVelocity.set(
+                                die.body.angularVelocity.x + (Math.random() * 10 - 5),
+                                die.body.angularVelocity.y + (Math.random() * 10 - 5),
+                                die.body.angularVelocity.z + (Math.random() * 10 - 5)
+                            );
+                        });
+                    }
+                });                
             }
 
             initializeScenes() {
@@ -460,6 +482,7 @@
 
         const game = new DiceGame();
         window.addEventListener('resize', () => game.handleResize());
+        
     </script>
 </body>
 </html>
