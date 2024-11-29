@@ -134,7 +134,7 @@
                 const materials = this.createDiceMaterial();
                 const shape = new CANNON.Box(new CANNON.Vec3(3, 3, 3));
 
-                [-6.5, 6.5].forEach(x => {
+                [-6.5, 6.5].forEach((x, index) => {
                     const diceMesh = new THREE.Mesh(geometry, materials);
                     diceMesh.position.set(x, 3, 0);
                     this.scene.add(diceMesh);
@@ -143,10 +143,11 @@
                         mass: 1,
                         material: new CANNON.Material({ restitution: 0.5 }),
                         shape: shape,
-                        linearDamping: 0.8, // Increased damping for smoother deceleration
+                        linearDamping: 0.8,
                         angularDamping: 0.8
                     });
                     diceBody.position.set(x, 3, 0);
+                    diceBody.initX = x;  // Store initial X position
                     this.world.addBody(diceBody);
 
                     this.dice.push({
@@ -231,10 +232,11 @@
                 requestAnimationFrame(this.animate.bind(this));
                 document.getElementById('debug').innerHTML = 
                     `Shake: ${this.isShaking ? 'Active' : 'Inactive'}<br>` +
-                    `Initial Positions: (${this.dice[0].body.initX.toFixed(1)}, ${this.dice[1].body.initX.toFixed(1)})<br>` +
-                    `Current X: (${this.dice[0].body.position.x.toFixed(1)}, ${this.dice[1].body.position.x.toFixed(1)})<br>` +
-                    `Velocities: (${this.dice[0].body.velocity.x.toFixed(2)}, ${this.dice[1].body.velocity.x.toFixed(2)})<br>` +
-                    `Forces: (${this.dice[0].body.force.x.toFixed(2)}, ${this.dice[1].body.force.x.toFixed(2)})<br>` +
+                    `Current X: (${this.dice?.[0]?.body?.position?.x?.toFixed(1) || 'N/A'}, ${this.dice?.[1]?.body?.position?.x?.toFixed(1) || 'N/A'})<br>` +
+                    `Current Y: (${this.dice?.[0]?.body?.position?.y?.toFixed(1) || 'N/A'}, ${this.dice?.[1]?.body?.position?.y?.toFixed(1) || 'N/A'})<br>` +
+                    `Current Z: (${this.dice?.[0]?.body?.position?.z?.toFixed(1) || 'N/A'}, ${this.dice?.[1]?.body?.position?.z?.toFixed(1) || 'N/A'})<br>` +
+                    `Velocities: (${this.dice?.[0]?.body?.velocity?.x?.toFixed(2) || 'N/A'}, ${this.dice?.[1]?.body?.velocity?.x?.toFixed(2) || 'N/A'})<br>` +
+                    `Forces: (${this.dice?.[0]?.body?.force?.x?.toFixed(2) || 'N/A'}, ${this.dice?.[1]?.body?.force?.x?.toFixed(2) || 'N/A'})<br>` +
                     `Collisions: ${this.collisionCount || 0}`;
     
                 this.renderer.render(this.scene, this.camera);
