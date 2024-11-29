@@ -59,7 +59,7 @@
                 this.renderer.setSize(window.innerWidth, window.innerHeight * 0.25);
                 document.body.appendChild(this.renderer.domElement);
                 this.camera.position.set(0, 8, 12);
-                this.camera.lookAt(0, 3, 0);
+                this.camera.lookAt(0, 0, 0);
                 //this.camera.position.set(0, 10, 0);
                 //this.camera.lookAt(0, 0, 0);                
 
@@ -85,7 +85,7 @@
 
             initPhysics() {
                 this.world = new CANNON.World();
-                this.world.gravity.set(0, -9.8, -3.6); // Z axis, positive for backward
+                this.world.gravity.set(0, 0, -9.8); // Z axis, positive for backward
                 this.world.broadphase = new CANNON.NaiveBroadphase();
                 this.world.solver.iterations = 20;
                 
