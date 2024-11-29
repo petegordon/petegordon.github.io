@@ -60,7 +60,17 @@
                 document.body.appendChild(this.renderer.domElement);
                 this.camera.position.set(0, 8, 12);
                 this.camera.lookAt(0, 3, 0);
-            }            
+
+                // Add visible box
+                const boxGeometry = new THREE.BoxGeometry(20, 12, 20);
+                const edges = new THREE.EdgesGeometry(boxGeometry);
+                const line = new THREE.LineSegments(
+                    edges,
+                    new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 })
+                );
+                line.position.set(0, 3, 0);
+                this.scene.add(line);
+            }         
 
             initLights() {
                 this.scene.add(new THREE.AmbientLight(0xffffff, 2.0));
@@ -81,12 +91,12 @@
                 const wallShape = new CANNON.Plane();
                 
                 const walls = [
-                    [-8, 0, 0, 0, Math.PI/2, 0],    // Left
-                    [8, 0, 0, 0, -Math.PI/2, 0],    // Right
-                    [0, -2, 0, -Math.PI/2, 0, 0],   // Floor
-                    [0, 8, 0, Math.PI/2, 0, 0],     // Ceiling
-                    [0, 0, -8, 0, 0, 0],            // Back
-                    [0, 0, 8, Math.PI, 0, 0],       // Front
+                    [-10, 0, 0, 0, Math.PI/2, 0],    // Left
+                    [10, 0, 0, 0, -Math.PI/2, 0],    // Right
+                    [0, -3, 0, -Math.PI/2, 0, 0],    // Floor
+                    [0, 9, 0, Math.PI/2, 0, 0],      // Ceiling
+                    [0, 0, -10, 0, 0, 0],            // Back
+                    [0, 0, 10, Math.PI, 0, 0],       // Front
                 ];
                 
                 walls.forEach(([x, y, z, rx, ry, rz]) => {
