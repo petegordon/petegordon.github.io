@@ -62,7 +62,7 @@
                 this.camera.lookAt(0, 3, 0);
 
                 // Add visible box
-                const boxGeometry = new THREE.BoxGeometry(32, 16, 10);
+                const boxGeometry = new THREE.BoxGeometry(30, 16, 16);
                 const edges = new THREE.EdgesGeometry(boxGeometry);
                 const line = new THREE.LineSegments(
                     edges,
@@ -83,7 +83,7 @@
 
             initPhysics() {
                 this.world = new CANNON.World();
-                this.world.gravity.set(0, -9.8, -4.9); // Z axis, positive for backward
+                this.world.gravity.set(0, -32.8, -9.6); // Z axis, positive for backward
                 this.world.broadphase = new CANNON.NaiveBroadphase();
                 this.world.solver.iterations = 20;
                 
@@ -91,12 +91,12 @@
                 const wallShape = new CANNON.Plane();
                 
                 const walls = [
-                    [-16, 0, 0, 0, Math.PI/2, 0],    // Left
-                    [16, 0, 0, 0, -Math.PI/2, 0],    // Right
+                    [-15, 0, 0, 0, Math.PI/2, 0],    // Left
+                    [15, 0, 0, 0, -Math.PI/2, 0],    // Right
                     [0, -8, 0, -Math.PI/2, 0, 0],    // Floor
                     [0, 8, 0, Math.PI/2, 0, 0],      // Ceiling
-                    [0, 0, -6, 0, 0, 0],            // Back
-                    [0, 0, 4, Math.PI, 0, 0],       // Front
+                    [0, 0, -8, 0, 0, 0],            // Back
+                    [0, 0, 8, Math.PI, 0, 0],       // Front
                 ];
                 
                 walls.forEach(([x, y, z, rx, ry, rz]) => {
@@ -114,26 +114,26 @@
 
             createDiceMaterial() {
                 const positions = [
-                    [[64, 64]],
-                    [[32, 32], [96, 96]],
-                    [[32, 32], [64, 64], [96, 96]],
-                    [[32, 32], [32, 96], [96, 32], [96, 96]],
-                    [[32, 32], [32, 96], [64, 64], [96, 32], [96, 96]],
-                    [[32, 32], [32, 64], [32, 96], [96, 32], [96, 64], [96, 96]]
+                    [[128, 128]],  // Was 64,64
+                    [[64, 64], [192, 192]],  // Was 32,32 and 96,96
+                    [[64, 64], [128, 128], [192, 192]],
+                    [[64, 64], [64, 192], [192, 64], [192, 192]],
+                    [[64, 64], [64, 192], [128, 128], [192, 64], [192, 192]],
+                    [[64, 64], [64, 128], [64, 192], [192, 64], [192, 128], [192, 192]]
                 ];
 
                 return positions.map(dots => {
                     const canvas = document.createElement('canvas');
-                    canvas.width = canvas.height = 128;
+                    canvas.width = canvas.height = 256;
                     const ctx = canvas.getContext('2d');
 
                     ctx.fillStyle = '#8B0000';
-                    ctx.fillRect(0, 0, 128, 128);
+                    ctx.fillRect(0, 0, 256, 256);
 
                     ctx.fillStyle = '#ffffff';
                     dots.forEach(([x, y]) => {
                         ctx.beginPath();
-                        ctx.arc(x, y, 12, 0, Math.PI * 2);
+                        ctx.arc(x, y, 24, 0, Math.PI * 2);
                         ctx.fill();
                     });
 
@@ -146,11 +146,12 @@
             }
 
             createDice() {
-                const geometry = new THREE.BoxGeometry(6, 6, 6);
-                const materials = this.createDiceMaterial();
-                const shape = new CANNON.Box(new CANNON.Vec3(3, 3, 3));
+                const geometry = new THREE.BoxGeometry(8, 8, 8);  // Was 6,6,6
+                const shape = new CANNON.Box(new CANNON.Vec3(4, 4, 4));  // Was 3,3,3
 
-                [-6.5, 6.5].forEach((x, index) => {
+                const materials = this.createDiceMaterial();
+
+                [-8.5, 8.5].forEach((x, index) => {
                     const diceMesh = new THREE.Mesh(geometry, materials);
                     diceMesh.position.set(x, 3, 0);
                     this.scene.add(diceMesh);
