@@ -230,6 +230,21 @@
 
             animate() {
                 requestAnimationFrame(this.animate.bind(this));
+                
+                // Add physics world step
+                this.world.step(1/60);
+                
+                // Update dice mesh positions based on physics
+                this.dice.forEach(die => {
+                    die.mesh.position.copy(die.body.position);
+                    die.mesh.quaternion.copy(die.body.quaternion);
+                    
+                    // Apply smooth velocity changes
+                    if (this.isShaking) {
+                        die.body.velocity.lerp(die.targetVelocity, this.smoothAcceleration);
+                    }
+                });
+
                 document.getElementById('debug').innerHTML = 
                     `Shake: ${this.isShaking ? 'Active' : 'Inactive'}<br>` +
                     `Current X: (${this.dice?.[0]?.body?.position?.x?.toFixed(1) || 'N/A'}, ${this.dice?.[1]?.body?.position?.x?.toFixed(1) || 'N/A'})<br>` +
@@ -238,9 +253,10 @@
                     `Velocities: (${this.dice?.[0]?.body?.velocity?.x?.toFixed(2) || 'N/A'}, ${this.dice?.[1]?.body?.velocity?.x?.toFixed(2) || 'N/A'})<br>` +
                     `Forces: (${this.dice?.[0]?.body?.force?.x?.toFixed(2) || 'N/A'}, ${this.dice?.[1]?.body?.force?.x?.toFixed(2) || 'N/A'})<br>` +
                     `Collisions: ${this.collisionCount || 0}`;
-    
+
                 this.renderer.render(this.scene, this.camera);
             }
+
         }
 
         const game = new DiceGame();
