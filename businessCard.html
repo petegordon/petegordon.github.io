@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>  
+    @page{
+        size:2in 3in landscape;
+    }
+    @media print {
+        @page {
+            size:2in 3in landscape;
+            /* page-orientation:rotate-right; */
+            background-color:rgb(0, 21, 255);
+            margin:0; 
+            padding:0;               
+        }
+    }
+    html,body {
+        margin: 0;
+        padding: 0;
+        -webkit-print-color-adjust:exact !important;
+        print-color-adjust:exact !important;
+        background-color:rgb(255, 132, 0);
+    }
+    body {
+        height: 2in;
+        width: 3in;
+    }
+    * {
+        box-sizing: border-box;
+    }    
+    body section{
+        position: absolute;
+        top: 0;
+        left: 0; 
+        right: 0;
+        bottom: 0;        
+        padding:0;
+        background-color:rgb(0, 0, 0);        
+        width:100%;
+        height:100%;
+        display:flex;
+        flex-direction:row;
+        justify-content: space-between;      
+        align-content: space-evenly;
+    }
+    section div {
+        
+    }
+    .logoWrapper {
+        background-color:yellow;
+        /* background-image: url('https://media.licdn.com/dms/image/C4D0BAQFZrzYOrwz4Lw/company-logo_200_200/0/1519875508703?e=1691020800&v=beta&t=P5AewguoCUhh-meTD9cg8s5H2Q7fSEBcR3wmA6z9xOg')     */
+
+       /*  padding:15px; */
+
+    }
+    .logo {        
+        padding:5%;
+        height:50%;
+        
+    }
+    .logoStirTrek {
+        padding:10%;
+        padding-top:20%;
+    }
+    .left400{
+        width:400px;
+    }
+    .right{
+        width:650px;
+       /* background-color:rgb(178, 27, 117);      */
+    }
+    .logoStirTrekYear {
+        position:absolute;
+        color:white;
+        font-size:4em;
+        z-index:999;
+        top:90%;
+        padding-left:2%;
+    }
+    .contactInfo{
+        display:flex;
+        flex-direction: column;      
+        width:100%;
+        height:100%;
+        background-color:rgb(255, 255, 255);
+    }
+    .contactInfo div {
+        margin:10px;
+        font-size:18pt;
+        font-weight:600;
+        /* color:rgb(181,174,89); */
+
+        text-align:right;
+       /* background-color:green;        */
+    }
+
+</style>
+<body>
+    <section>
+        <div class="left400">
+            <img class="profile" src="https://pbs.twimg.com/profile_images/1082360213313744896/ixXj7KV4_400x400.jpg" />
+            <img class=" left400 logoStirTrek" src="https://stirtrek.com/images/StirTrek-Logo-Banner-453x350.png" />
+        </div>   
+        <div class="right">        
+            <div class="logoWrapper">
+                <img class="logo" src="https://media.licdn.com/dms/image/C4D0BAQFZrzYOrwz4Lw/company-logo_200_200/0/1519875508703?e=1691020800&v=beta&t=P5AewguoCUhh-meTD9cg8s5H2Q7fSEBcR3wmA6z9xOg" />
+            </div>
+            <div class="contactInfo">
+                <div>pete@petegordon.com</div>
+                <div>pete@usersfirst.com</div>                    
+                <div>614-835-PETE</div>            
+            </div>
+        </div>
+    </section>
+    <div class="logoStirTrekYear">2023</div>
+</body>
+</html>
