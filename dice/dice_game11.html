@@ -77,6 +77,9 @@
                 this.isShaking = false;
                 this.throwDetected = false;
                 
+                this.maxRotationSpeed = 15;
+                this.smoothAcceleration = 0.3;
+
                 this.initializeScenes();
                 this.initializePhysics();
                 this.initializeLights();
@@ -349,23 +352,26 @@
             detectThrow(acceleration) {
                 if (!this.isShaking || this.throwDetected) return;
 
+                const shakeTime = Date.now() - this.lastShakeTime;
                 const totalAcceleration = Math.sqrt(
                     acceleration.x * acceleration.x +
                     acceleration.y * acceleration.y
                 );
 
-                const shakeTime = Date.now() - this.lastShakeTime;
+                // Only allow throw after minimum shake time
                 if (shakeTime > this.minShakeTime && totalAcceleration > this.throwThreshold) {
                     this.throwDetected = true;
                     this.lowerWorld.removeBody(this.ceiling);
                     
                     this.dice.forEach(die => {
+                        // Stronger upward force
                         die.body.velocity.y += 40;
                         die.body.velocity.z -= 15;
+                        // Preserve existing momentum
                         die.body.angularVelocity.set(
-                            Math.random() * 10 - 5,
-                            Math.random() * 10 - 5,
-                            Math.random() * 10 - 5
+                            die.body.angularVelocity.x + (Math.random() * 10 - 5),
+                            die.body.angularVelocity.y + (Math.random() * 10 - 5),
+                            die.body.angularVelocity.z + (Math.random() * 10 - 5)
                         );
                     });
                 }
