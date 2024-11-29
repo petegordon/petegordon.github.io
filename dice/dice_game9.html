@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dice Motion</title>
+    <style>
+        body { margin: 0; }
+        canvas { 
+            position: fixed;
+            bottom: 0;
+            width: 100vw;
+            height: 25vh;
+        }
+        #debug {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            font-family: monospace;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="debug">Waiting for motion...</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+    <script>
+        // Paste the entire DiceGame class here
+        class DiceGame {
+            constructor() {
+                this.scene = new THREE.Scene();
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.dice = [];
+                this.motionHistory = [];
+                this.shakeThreshold = 15;
+                this.isShaking = false;
+                this.maxRotationSpeed = 5; // Cap rotation speed
+                this.smoothAcceleration = 0.1; // Smooth acceleration factor
+                this.collisionCount = 0;
+
+                this.shakeThreshold = 8; // Lower threshold for easier activation
+                this.maxRotationSpeed = 15; // Increased rotation
+                this.smoothAcceleration = 0.3; // More responsive               
+
+                // Throwing dice  
+
+                this.throwDice = [];                
+                this.throwHistory = [];
+                this.throwThreshold = 20;
+                this.isThrowing = false;
+                this.throwCooldown = false;
+                // Split screen setup
+                this.renderer.setSize(window.innerWidth, window.innerHeight * 0.5);
+                this.topRenderer = new THREE.WebGLRenderer({ antialias: true });
+                this.topRenderer.setSize(window.innerWidth, window.innerHeight * 0.25);
+                this.topRenderer.domElement.style.position = 'fixed';
+                this.topRenderer.domElement.style.top = '0';
+                document.body.appendChild(this.topRenderer.domElement);
+                
+                // Add aspect calculation
+                const aspect = window.innerWidth / (window.innerHeight * 0.25);
+
+                // Create second scene for throw area
+                this.throwScene = new THREE.Scene();
+                this.throwScene.background = new THREE.Color(0x0a4082); // Blue felt
+                this.throwCamera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+                this.throwCamera.position.set(0, 8, 12);
+                this.throwCamera.lookAt(0, 0, 0);
+
+
+                this.initPhysics();
+                this.initScene();
+                this.initLights();
+                this.createDice();
+                this.setupMotionHandling();
+                this.animate(); 
+
+            }
+
+            initScene() {
+                this.scene.background = new THREE.Color(0x0a4012);
+                const aspect = window.innerWidth / (window.innerHeight * 0.25);
+                this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+                this.renderer.setSize(window.innerWidth, window.innerHeight * 0.25);
+                document.body.appendChild(this.renderer.domElement);
+                this.camera.position.set(0, 8, 12);
+                this.camera.lookAt(0, 0, 0);
+                //this.camera.position.set(0, 10, 0);
+                //this.camera.lookAt(0, 0, 0);                
+
+                // Add visible box
+                const boxGeometry = new THREE.BoxGeometry(30, 16, 16);
+                const edges = new THREE.EdgesGeometry(boxGeometry);
+                const line = new THREE.LineSegments(
+                    edges,
+                    new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 })
+                );
+                line.position.set(0, 3, 0);
+                this.scene.add(line);
+            }         
+
+            initLights() {
+                this.scene.add(new THREE.AmbientLight(0xffffff, 2.0));
+                [[-5,3,-5], [5,3,-5], [-5,3,5], [5,3,5]].forEach(pos => {
+                    const light = new THREE.PointLight(0xffffff, 1.0);
+                    light.position.set(...pos);
+                    this.scene.add(light);
+                });
+            }
+
+            initPhysics() {
+                this.world = new CANNON.World();
+                this.world.gravity.set(0, 0, -9.8); // Z axis, positive for backward
+                this.world.broadphase = new CANNON.NaiveBroadphase();
+                this.world.solver.iterations = 20;
+                
+                const wallMaterial = new CANNON.Material({ restitution: 0.5, friction: 0.5 });
+                const wallShape = new CANNON.Plane();
+                
+                const walls = [
+                    [-15, 0, 0, 0, Math.PI/2, 0],    // Left
+                    [15, 0, 0, 0, -Math.PI/2, 0],    // Right
+                    [0, -8, 0, -Math.PI/2, 0, 0],    // Floor
+                    [0, 8, 0, Math.PI/2, 0, 0],      // Ceiling
+                    [0, 0, -8, 0, 0, 0],            // Back
+                    [0, 0, 8, Math.PI, 0, 0],       // Front
+                ];
+                
+                walls.forEach(([x, y, z, rx, ry, rz]) => {
+                    const wallBody = new CANNON.Body({ mass: 0, material: wallMaterial });
+                    wallBody.addShape(wallShape);
+                    wallBody.position.set(x, y, z);
+                    wallBody.quaternion.setFromEuler(rx, ry, rz);
+                    this.world.addBody(wallBody);
+                });
+
+                this.world.addEventListener('beginContact', event => {
+                    this.collisionCount = (this.collisionCount || 0) + 1;
+                });
+
+                //Throw Physics
+                this.throwWorld = new CANNON.World();
+                this.throwWorld.gravity.set(0, -9.82, 0);
+                this.throwWorld.broadphase = new CANNON.NaiveBroadphase();
+                this.throwWorld.solver.iterations = 20;
+                
+                const throwWallMaterial = new CANNON.Material({ restitution: 0.5, friction: 0.5 });
+                const throwWallShape = new CANNON.Plane();
+                
+                // Add walls for throw area
+                const throwWalls = [
+                    [-15, 0, 0, 0, Math.PI/2, 0],    // Left
+                    [15, 0, 0, 0, -Math.PI/2, 0],    // Right
+                    [0, -8, 0, -Math.PI/2, 0, 0],    // Floor
+                    [0, 8, 0, Math.PI/2, 0, 0],      // Ceiling
+                    [0, 0, -8, 0, 0, 0],             // Back
+                    [0, 0, 8, Math.PI, 0, 0],        // Front
+                ];
+                
+                throwWalls.forEach(([x, y, z, rx, ry, rz]) => {
+                    const wallBody = new CANNON.Body({ mass: 0, material: throwWallMaterial });
+                    wallBody.addShape(throwWallShape);
+                    wallBody.position.set(x, y, z);
+                    wallBody.quaternion.setFromEuler(rx, ry, rz);
+                    this.throwWorld.addBody(wallBody);
+                });
+
+            }
+
+            createDiceMaterial() {
+                const positions = [
+                    [[128, 128]],  // Was 64,64
+                    [[64, 64], [192, 192]],  // Was 32,32 and 96,96
+                    [[64, 64], [128, 128], [192, 192]],
+                    [[64, 64], [64, 192], [192, 64], [192, 192]],
+                    [[64, 64], [64, 192], [128, 128], [192, 64], [192, 192]],
+                    [[64, 64], [64, 128], [64, 192], [192, 64], [192, 128], [192, 192]]
+                ];
+
+                return positions.map(dots => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = canvas.height = 256;
+                    const ctx = canvas.getContext('2d');
+
+                    ctx.fillStyle = '#8B0000';
+                    ctx.fillRect(0, 0, 256, 256);
+
+                    ctx.fillStyle = '#ffffff';
+                    dots.forEach(([x, y]) => {
+                        ctx.beginPath();
+                        ctx.arc(x, y, 24, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+
+                    return new THREE.MeshStandardMaterial({
+                        map: new THREE.CanvasTexture(canvas),
+                        metalness: 0.7,
+                        roughness: 0.2
+                    });
+                });
+            }
+
+            createDice() {
+                const geometry = new THREE.BoxGeometry(8, 8, 8);  // Was 6,6,6
+                const shape = new CANNON.Box(new CANNON.Vec3(4, 4, 4));  // Was 3,3,3
+
+                const materials = this.createDiceMaterial();
+
+                [-8.5, 8.5].forEach((x, index) => {
+                    const diceMesh = new THREE.Mesh(geometry, materials);
+                    diceMesh.position.set(x, 3, 0);
+                    this.scene.add(diceMesh);
+
+                    const diceBody = new CANNON.Body({
+                        mass: 1,
+                        material: new CANNON.Material({ restitution: 0.5 }),
+                        shape: shape,
+                        linearDamping: 0.8,
+                        angularDamping: 0.8
+                    });
+                    diceBody.position.set(x, 3, 0);
+                    diceBody.initX = x;  // Store initial X position
+                    this.world.addBody(diceBody);
+
+                    this.dice.push({
+                        mesh: diceMesh,
+                        body: diceBody,
+                        targetVelocity: new CANNON.Vec3(0, 0, 0)
+                    });
+                });
+            }
+
+            detectShake(acceleration) {
+                const totalAcceleration = Math.sqrt(
+                    acceleration.x * acceleration.x +
+                    acceleration.y * acceleration.y
+                );
+
+                this.motionHistory.push(totalAcceleration);
+                if (this.motionHistory.length > 10) {
+                    this.motionHistory.shift();
+                }
+
+                const jerk = Math.abs(
+                    this.motionHistory[this.motionHistory.length - 1] -
+                    this.motionHistory[0]
+                );
+
+                return jerk > this.shakeThreshold;
+            }
+
+            createThrowDice() {
+                // Create smaller dice (size 4 instead of 8)
+                const geometry = new THREE.BoxGeometry(4, 4, 4);
+                const shape = new CANNON.Box(new CANNON.Vec3(2, 2, 2));
+                const materials = this.createDiceMaterial();
+
+                // Start positions at bottom of screen
+                [-4, 4].forEach((x) => {
+                    const diceMesh = new THREE.Mesh(geometry, materials);
+                    diceMesh.position.set(x, -5, 0);
+                    this.throwScene.add(diceMesh);
+
+                    const diceBody = new CANNON.Body({
+                        mass: 1,
+                        material: new CANNON.Material({ restitution: 0.5 }),
+                        shape: shape
+                    });
+                    diceBody.position.set(x, -5, 0);
+                    
+                    // Initial upward velocity
+                    diceBody.velocity.set(0, 10, -5);
+                    diceBody.angularVelocity.set(
+                        Math.random() * 5,
+                        Math.random() * 5,
+                        Math.random() * 5
+                    );
+
+                    this.throwDice.push({
+                        mesh: diceMesh,
+                        body: diceBody
+                    });
+                });
+            }            
+            detectThrow(acceleration) {
+                const totalAcceleration = Math.sqrt(
+                    acceleration.x * acceleration.x +
+                    acceleration.z * acceleration.z  // Using Z instead of Y for forward motion
+                );
+
+                this.throwHistory.push(totalAcceleration);
+                if (this.throwHistory.length > 20) {  // Longer history for throw detection
+                    this.throwHistory.shift();
+                }
+
+                // Look for rapid acceleration followed by sudden stop
+                const recentMax = Math.max(...this.throwHistory.slice(-5));
+                const currentValue = this.throwHistory[this.throwHistory.length - 1];
+                
+                return !this.throwCooldown && 
+                    recentMax > this.throwThreshold && 
+                    currentValue < recentMax * 0.3;
+            }           
+            
+            setupMotionHandling() {
+                let lastUpdate = Date.now();
+                const handleMotion = (event) => {
+
+                    const throwAccel = {
+                        x: event.accelerationIncludingGravity.x,
+                        z: event.accelerationIncludingGravity.z
+                    };
+                    
+                    if (this.detectThrow(throwAccel)) {
+                        this.isThrowing = true;
+                        this.throwCooldown = true;
+                        this.createThrowDice();
+                        setTimeout(() => this.throwCooldown = false, 2000);
+                    }
+                    
+                    const now = Date.now();
+                    if (now - lastUpdate < 16) return; // Increased responsiveness
+                    lastUpdate = now;
+
+                    const acceleration = {
+                        x: event.accelerationIncludingGravity.x * 2, // Amplified motion
+                        y: event.accelerationIncludingGravity.y * 2
+                    };
+
+                    this.isShaking = this.detectShake(acceleration);
+
+                    if (this.isShaking) {
+                        this.dice.forEach(die => {
+                            const force = 200; // Increased force
+                            die.targetVelocity.x = acceleration.x * force;
+                            die.targetVelocity.y = Math.abs(acceleration.y) * force/2;
+                            die.targetVelocity.z = (Math.random() - 0.5) * force;
+                            
+                            die.body.angularVelocity.set(
+                                (Math.random() - 0.5) * this.maxRotationSpeed,
+                                (Math.random() - 0.5) * this.maxRotationSpeed,
+                                (Math.random() - 0.5) * this.maxRotationSpeed
+                            );
+                        });
+                    }
+                };
+
+                if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                    const button = document.createElement('button');
+                    button.textContent = 'Enable Motion';
+                    button.style.cssText = 'position:fixed;z-index:1000;top:20px;left:50%;transform:translateX(-50%);padding:10px;';
+                    document.body.appendChild(button);
+                    
+                    button.addEventListener('click', async () => {
+                        const permission = await DeviceMotionEvent.requestPermission();
+                        if (permission === 'granted') {
+                            window.addEventListener('devicemotion', handleMotion);
+                            button.remove();
+                        }
+                    });
+                } else {
+                    window.addEventListener('devicemotion', handleMotion);
+                }
+            }
+
+            updateDice(diceArray) {
+                diceArray.forEach(die => {
+                    die.mesh.position.copy(die.body.position);
+                    die.mesh.quaternion.copy(die.body.quaternion);
+                    
+                    // Apply smooth velocity changes if shaking (for main dice only)
+                    if (this.isShaking && diceArray === this.dice) {
+                        die.body.velocity.lerp(die.targetVelocity, this.smoothAcceleration);
+                    }
+                });
+            }
+
+            animate() {
+                requestAnimationFrame(this.animate.bind(this));
+                
+                // Update both physics worlds
+                this.world.step(1/60);
+                this.throwWorld.step(1/60);
+                
+                // Update both scenes
+                this.updateDice(this.dice);
+                if (this.isThrowing && this.throwDice.length > 0) {
+                    this.updateDice(this.throwDice);
+                }
+
+
+                document.getElementById('debug').innerHTML = 
+                    `Shake: ${this.isShaking ? 'Active' : 'Inactive'}<br>` +
+                    `Current X: (${this.dice?.[0]?.body?.position?.x?.toFixed(1) || 'N/A'}, ${this.dice?.[1]?.body?.position?.x?.toFixed(1) || 'N/A'})<br>` +
+                    `Current Y: (${this.dice?.[0]?.body?.position?.y?.toFixed(1) || 'N/A'}, ${this.dice?.[1]?.body?.position?.y?.toFixed(1) || 'N/A'})<br>` +
+                    `Current Z: (${this.dice?.[0]?.body?.position?.z?.toFixed(1) || 'N/A'}, ${this.dice?.[1]?.body?.position?.z?.toFixed(1) || 'N/A'})<br>` +
+                    `Velocities: (${this.dice?.[0]?.body?.velocity?.x?.toFixed(2) || 'N/A'}, ${this.dice?.[1]?.body?.velocity?.x?.toFixed(2) || 'N/A'})<br>` +
+                    `Forces: (${this.dice?.[0]?.body?.force?.x?.toFixed(2) || 'N/A'}, ${this.dice?.[1]?.body?.force?.x?.toFixed(2) || 'N/A'})<br>` +
+                    `Collisions: ${this.collisionCount || 0}`;
+
+                this.renderer.render(this.scene, this.camera);
+                this.topRenderer.render(this.throwScene, this.throwCamera);
+            }
+
+        }
+
+        const game = new DiceGame();
+        window.addEventListener('resize', () => game.resize());
+    </script>
+</body>
+</html>
