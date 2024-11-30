@@ -354,7 +354,10 @@
             }
 
             detectThrow(acceleration) {
-                if (!this.isShaking || this.throwDetected) return;
+                if (!this.isShaking || this.throwDetected) {
+                    this.updateDebugInfo("Shake: Inactive", "Throw: No");
+                    return;
+                }
 
                 const shakeTime = Date.now() - this.lastShakeTime;
                 const totalAcceleration = Math.sqrt(
@@ -365,8 +368,9 @@
 
                 const zAcceleration = Math.abs(acceleration.z);
 
+                this.updateDebugInfo(`Shake: Active (${shakeTime}ms)`, `Total accel: ${totalAcceleration.toFixed(2)}`, `Z accel: ${zAcceleration.toFixed(2)}`);
                 // Check for a sudden, strong upward motion (z-axis acceleration > 20)
-                if (shakeTime > this.minShakeTime && totalAcceleration > this.throwThreshold && zAcceleration > 20) {
+                if (shakeTime > this.minShakeTime && totalAcceleration > this.throwThreshold && zAcceleration > 20) {                    
                     this.throwDetected = true;
                     this.world.removeBody(this.ceiling);
 
@@ -382,6 +386,8 @@
                             Math.random() * 10 - 5
                         );
                     });
+                } else {
+                    this.updateDebugInfo("Shake: Active", "Throw: No");
                 }
             }
 
@@ -400,7 +406,7 @@
                 requestAnimationFrame(this.animate.bind(this));
                 this.world.step(1/60);
                 this.updateDicePositions();
-                
+                                
                 document.getElementById('debug').innerHTML = 
                     `Shake: ${this.isShaking ? 'Active' : 'Inactive'}<br>` +
                     `Throw: ${this.throwDetected ? 'Yes' : 'No'}<br>` +
@@ -414,6 +420,13 @@
                 this.camera.aspect = aspect;
                 this.camera.updateProjectionMatrix();
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            updateDebugInfo(...messages) {
+                document.getElementById('debug').innerHTML = 
+                    `Shake: ${messages[0]}<br>` +
+                    `Throw: ${messages[1]}<br>` +
+                    `Dice: ${this.dice.length}`;
             }
         }
 
