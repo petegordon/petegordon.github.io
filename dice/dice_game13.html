@@ -243,7 +243,7 @@
                     const acceleration = {
                         x: event.accelerationIncludingGravity.x * 2,
                         y: event.accelerationIncludingGravity.y * 2,
-                        z: event.acceleration.z * 2
+                        z: event.accelerationIncludingGravity.z * 2
                     };
 
                     this.isShaking = this.detectShake(acceleration);
@@ -263,7 +263,12 @@
                             );
                         });
                     }
-                    this.detectThrow(acceleration);
+                    const accelerationNoGravity = {
+                        x: event.acceleration.x * 2,
+                        y: event.acceleration.y * 2,
+                        z: event.acceleration.z * 2
+                    };
+                    this.detectThrow(accelerationNoGravity);
                 };
 
                 if (typeof DeviceMotionEvent.requestPermission === 'function') {
