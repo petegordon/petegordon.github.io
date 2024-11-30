@@ -386,7 +386,7 @@
                 //const zAcceleration = Math.abs(acceleration.z);
                 const zAcceleration = acceleration.z;
 
-                if (zAcceleration > this.highestZAcceleration) {
+                if (zAcceleration < this.highestZAcceleration) {
                     this.highestZAcceleration = zAcceleration;
                 }
                 if (totalAcceleration > this.highestTotalAcceleration) {
