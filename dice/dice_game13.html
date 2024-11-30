@@ -359,7 +359,7 @@
                 );
 
                 const isCurrentlyShaking = jerk > this.shakeThreshold;
-                if (isCurrentlyShaking && !this.isShaking && (this.lastShakeTime < (Date.now() - 200))) {
+                if (isCurrentlyShaking && !this.isShaking && (this.lastShakeTime < (Date.now() - 500))) {
                     this.lastShakeTime = Date.now();
                     this.countShaking++;
                 }
