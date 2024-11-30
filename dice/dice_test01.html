@@ -19,12 +19,18 @@
 </head>
 <body>
   <h1>Device Motion Tester</h1>
+  <div id="debug"></div>
   <div>
-    <div>Acceleration X: <span id="accelerationX" class="value">0.00</span></div>
-    <div>Acceleration Y: <span id="accelerationY" class="value">0.00</span></div>
-    <div>Acceleration Z: <span id="accelerationZ" class="value">0.00</span></div>
+    <div>X: <span id="accelerationX" class="value">0.00</span></div>
+    <div>Y: <span id="accelerationY" class="value">0.00</span></div>
+    <div>Z: <span id="accelerationZ" class="value">0.00</span></div>
   </div>
-
+  <div>
+    <div>with gravity</div>
+    <div>X: <span id="gravityX" class="value">0.00</span></div>
+    <div>Y: <span id="gravityY" class="value">0.00</span></div>
+    <div>Z: <span id="gravityZ" class="value">0.00</span></div>
+  </div>
   <script>
     if (typeof DeviceMotionEvent.requestPermission === 'function') {
         const button = document.createElement('button');
@@ -45,18 +51,30 @@
     }
 
 function handleDeviceMotion(event) {
-  // Get the acceleration values
-  const { x, y, z } = event.acceleration;
-  const acceleration = {
+    // Get the acceleration values
+    const { x, y, z } = event.acceleration;
+    const acceleration = {
+                            x: event.acceleration.x * 2,
+                            y: event.acceleration.y * 2,
+                            z: event.acceleration.z * 2
+                    };
+    const accelerationWithGravity = {
                         x: event.accelerationIncludingGravity.x * 2,
                         y: event.accelerationIncludingGravity.y * 2,
                         z: event.accelerationIncludingGravity.z * 2
                     };
-  // Update the display with the acceleration values
-  document.getElementById('accelerationX').textContent = acceleration.x.toFixed(2);
-  document.getElementById('accelerationY').textContent = acceleration.y.toFixed(2);
-  document.getElementById('accelerationZ').textContent = acceleration.z.toFixed(2);
-}    
+    // Update the display with the acceleration values
+    document.getElementById('accelerationX').textContent = acceleration.x.toFixed(2);
+    document.getElementById('accelerationY').textContent = acceleration.y.toFixed(2);
+    document.getElementById('accelerationZ').textContent = acceleration.z.toFixed(2);
+    document.getElementById('gravityX').textContent = accelerationWithGravity.x.toFixed(2);
+    document.getElementById('gravityY').textContent = accelerationWithGravity.y.toFixed(2);
+    document.getElementById('gravityZ').textContent = accelerationWithGravity.z.toFixed(2);
+                    
+}
+function debugInfo(...messages) {
+    document.getElementById('debug').htmlContent = messages.join('<br>');
+}
   </script>
 </body>
 </html>
