@@ -410,7 +410,7 @@
                 this.world.step(1/60);
                 this.updateDicePositions();
                   
-                updateDebugInfo(`Sahke ${this.isShaking}`, `Throw ${this.throwDetected}`);
+                this.updateDebugInfo(`Shake ${this.isShaking}`, `Throw ${this.throwDetected}`);
                 
                 this.renderer.render(this.scene, this.camera);
             }
