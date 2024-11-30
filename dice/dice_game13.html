@@ -360,7 +360,7 @@
                 );
 
                 const isCurrentlyShaking = this.jerk > this.shakeThreshold;
-                this.updateDebugInfo(`Jerk: ${this.jerk}`, `Threshold: ${this.shakeThreshold}`);
+                this.updateDebugInfo();
                 if (isCurrentlyShaking && !this.isShaking){ //  && (this.lastShakeTime < (Date.now() - 200))) {
                     this.lastShakeTime = Date.now();
                     this.countShaking++;
@@ -446,7 +446,7 @@
                         });
                     }, 200);                    
                 } else {
-                    this.updateDebugInfo("Shake: Active", "Throw: No");
+                    this.updateDebugInfo();
                 }
             }
 
@@ -467,7 +467,7 @@
                 this.updateDicePositions();
                   
                 //this.updateDebugInfo(`Shake ${this.isShaking}`, `Throw ${this.throwDetected}`);
-                this.updateDebugInfo(`Shake ${this.jerk}`, `Threshold ${this.shakeThreshold}`);
+                this.updateDebugInfo();
                 
                 this.renderer.render(this.scene, this.camera);
             }
@@ -481,7 +481,7 @@
 
             updateDebugInfo(...messages) {
                 document.getElementById('debug').innerHTML = 
-                    `Jerk: ${this.isShaking}<br>` +
+                    `Shaking: ${this.isShaking}<br>` +
                     `Dice: ${this.dice.length}<br>` +
                     `Throws detected: ${this.countThrowsDetected}<br>` +
                     `Highest total acceleration: ${this.highestTotalAcceleration.toFixed(2)}<br>` +
