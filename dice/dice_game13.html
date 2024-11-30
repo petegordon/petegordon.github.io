@@ -363,18 +363,17 @@
                 );
 
                 const isCurrentlyShaking = this.jerk > this.shakeThreshold;
-                this.updateDebugInfo();
                 if (isCurrentlyShaking && !this.isShaking){ //  && (this.lastShakeTime < (Date.now() - 200))) {
                     this.lastShakeTime = Date.now();
                     this.countShaking++;
                     this.isShaking = true;
-                    updateDebugInfo();
                 }
 
                 if (!isCurrentlyShaking && this.isShaking && (this.lastShakeTime < (Date.now() - 1000))) {
                     this.isShaking = false;
                 }
-                
+
+                this.updateDebugInfo();
                 return isCurrentlyShaking;
             }
 
