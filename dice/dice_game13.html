@@ -409,11 +409,8 @@
                 requestAnimationFrame(this.animate.bind(this));
                 this.world.step(1/60);
                 this.updateDicePositions();
-                                
-                document.getElementById('debug').innerHTML = 
-                    `Shake: ${this.isShaking ? 'Active' : 'Inactive'}<br>` +
-                    `Throw: ${this.throwDetected ? 'Yes' : 'No'}<br>` +
-                    `Dice: ${this.dice.length}`;
+                  
+                updateDebugInfo(`Sahke ${this.isShaking}`, `Throw ${this.throwDetected}`);
                 
                 this.renderer.render(this.scene, this.camera);
             }
