@@ -383,7 +383,8 @@
                 );
                 */
 
-                const zAcceleration = Math.abs(acceleration.z);
+                //const zAcceleration = Math.abs(acceleration.z);
+                const zAcceleration = acceleration.z;
 
                 if (zAcceleration > this.highestZAcceleration) {
                     this.highestZAcceleration = zAcceleration;
@@ -397,7 +398,7 @@
 
                 this.updateDebugInfo(`Shake: Active (${shakeTime}ms)`, `Total accel: ${totalAcceleration.toFixed(2)}`, `Z accel: ${zAcceleration.toFixed(2)}`);
                 // Check for a sudden, strong upward motion (z-axis acceleration > 20)
-                if (!this.isShaking && zAcceleration > 60) {                    
+                if (!this.isShaking && zAcceleration < -50) {                    
                     this.countThrowsDetected++;
                    // Simulate vigorous shaking first
                    const shakeSequence = () => {
