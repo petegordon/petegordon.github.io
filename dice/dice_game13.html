@@ -358,7 +358,7 @@
                 );
 
                 const isCurrentlyShaking = jerk > this.shakeThreshold;
-                if (isCurrentlyShaking && !this.isShaking) {
+                if (isCurrentlyShaking && !this.isShaking && (this.lastShakeTime < (Date.now() - 200))) {
                     this.lastShakeTime = Date.now();
                     this.countShaking++;
                 }
@@ -478,7 +478,8 @@
                     `Highest total acceleration: ${this.highestTotalAcceleration.toFixed(2)}<br>` +
                     `Highest z acceleration: ${this.highestZAcceleration.toFixed(2)}<br>` +
                     `Highest shake time: ${this.highestShakeTime}ms<br>` +
-                    `Shaking count: ${this.countShaking}`;
+                    `Shaking count: ${this.countShaking}<br>` +
+                    `Last Shake Time: ${this.lastShakeTime}`;
             }
         }
 
