@@ -61,6 +61,8 @@
                 this.maxRotationSpeed = 15;
                 this.smoothAcceleration = 0.3;
 
+                this.countThrowsDetected = 0;
+
 
                 // Box and dice positioning
                 // Make these instance variables
@@ -371,6 +373,7 @@
                 this.updateDebugInfo(`Shake: Active (${shakeTime}ms)`, `Total accel: ${totalAcceleration.toFixed(2)}`, `Z accel: ${zAcceleration.toFixed(2)}`);
                 // Check for a sudden, strong upward motion (z-axis acceleration > 20)
                 if (shakeTime > this.minShakeTime && totalAcceleration > this.throwThreshold && zAcceleration > 20) {                    
+                    this.countThrowsDetected++;
                     this.throwDetected = true;
                     this.world.removeBody(this.ceiling);
 
@@ -426,7 +429,8 @@
                 document.getElementById('debug').innerHTML = 
                     `Shake: ${messages[0]}<br>` +
                     `Throw: ${messages[1]}<br>` +
-                    `Dice: ${this.dice.length}`;
+                    `Dice: ${this.dice.length}<br>` +
+                    `Throws detected: ${this.countThrowsDetected}`;
             }
         }
 
