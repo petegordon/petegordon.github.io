@@ -36,22 +36,26 @@
         button.addEventListener('click', async () => {
             const permission = await DeviceMotionEvent.requestPermission();
             if (permission === 'granted') {
-                window.addEventListener('devicemotion', handleMotion);
+                window.addEventListener('devicemotion', handleDeviceMotion);
                 button.remove();
             }
         });
     } else {
-        window.addEventListener('devicemotion', handleMotion);
+        window.addEventListener('devicemotion', handleDeviceMotion);
     }
 
 function handleDeviceMotion(event) {
   // Get the acceleration values
   const { x, y, z } = event.acceleration;
-
+  const acceleration = {
+                        x: event.accelerationIncludingGravity.x * 2,
+                        y: event.accelerationIncludingGravity.y * 2,
+                        z: event.accelerationIncludingGravity.z * 2
+                    };
   // Update the display with the acceleration values
-  document.getElementById('accelerationX').textContent = x.toFixed(2);
-  document.getElementById('accelerationY').textContent = y.toFixed(2);
-  document.getElementById('accelerationZ').textContent = z.toFixed(2);
+  document.getElementById('accelerationX').textContent = acceleration.x.toFixed(2);
+  document.getElementById('accelerationY').textContent = acceleration.y.toFixed(2);
+  document.getElementById('accelerationZ').textContent = acceleration.z.toFixed(2);
 }    
   </script>
 </body>
