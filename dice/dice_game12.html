@@ -71,7 +71,7 @@
                 this.boxY = -30 //-(this.viewportHeight/2) + (this.boxHeight/2);                
                 this.boxDepth = 16;        // Depth of box
                 this.boxWidth = 35;        // Width of box
-                this.diceOffsetFromFloor = 3;  // How far dice start from floor
+                this.diceOffsetFromFloor = 0;  // How far dice start from floor
                                 
                 this.initializeScene();
                 this.initializePhysics();
@@ -99,11 +99,11 @@
             }
 
             initializePhysics() {
-                this.world.gravity.set(0, -9.8, -4.9);
+                this.world.gravity.set(0, -9.8, 0);
                 this.world.broadphase = new CANNON.NaiveBroadphase();
                 this.world.solver.iterations = 20;
                 this.physicsMaterial = new CANNON.Material({
-                    friction: 0.3,
+                    friction: 0,
                     restitution: 0.6
                 });
             }
@@ -280,13 +280,16 @@
             }
 
             setupTestButton() {
+
+                this.world.gravity.set(0, 0, -9.8);
+
                 document.getElementById('testButton').addEventListener('click', () => {
                     // Simulate vigorous shaking first
                     const shakeSequence = () => {
                         this.dice.forEach(die => {
                             die.body.velocity.set(
-                                (Math.random() - 0.5) * 30,  // Increased random movement
-                                (Math.random() - 0.5) * 30,
+                                (Math.random() - 0.5) * 30,  
+                                (Math.random() - 0.5) * 30, 
                                 (Math.random() - 0.5) * 30
                             );
                             die.body.angularVelocity.set(
@@ -299,18 +302,18 @@
 
                     // Shake for 1 second
                     const shakeInterval = setInterval(shakeSequence, 50);
-                    
-                    // Then throw
+
+                    // Then throw with upward velocity
                     setTimeout(() => {
                         clearInterval(shakeInterval);
                         this.throwDetected = true;
                         this.world.removeBody(this.ceiling);
-                        
+
                         this.dice.forEach(die => {
                             die.body.velocity.set(
-                                (Math.random() - 0.5) * 10,   // Some sideways spread
-                                (Math.random() - 0.5) * 10,   // Some vertical spread
-                                -60                           // Strong backward throw
+                                (Math.random() - 0.5) * 10,  // Some sideways spread
+                                80,                         // Upward velocity
+                                -60                         // Strong backward throw
                             );
                             die.body.angularVelocity.set(
                                 Math.random() * 15 - 7.5,
