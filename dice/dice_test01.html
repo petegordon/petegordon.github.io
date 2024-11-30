@@ -76,7 +76,7 @@ function handleDeviceMotion(event) {
                         z: event.accelerationIncludingGravity.z * 2
                     };
 
-    if (acceleration.z > 60) {
+    if (acceleration.z < 60) {
         const timeSpan = Date.now() - lastThrow; // Time span in milliseconds
         // Extract seconds and milliseconds
         const seconds = Math.floor((timeSpan / 1000) % 60); // Only the seconds part
