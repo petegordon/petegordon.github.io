@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Device Motion Tester</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 4rem;
+    }
+    h1 {
+      margin-bottom: 4rem;
+    }
+    .value {
+      font-size: 16rem;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Device Motion Tester</h1>
+  <div>
+    <div>Acceleration X: <span id="accelerationX" class="value">0.00</span></div>
+    <div>Acceleration Y: <span id="accelerationY" class="value">0.00</span></div>
+    <div>Acceleration Z: <span id="accelerationZ" class="value">0.00</span></div>
+  </div>
+
+  <script>
+    if (typeof DeviceMotionEvent.requestPermission === 'function') {
+        const button = document.createElement('button');
+        button.textContent = 'Enable Motion';
+        button.className = 'motion-button';
+        button.style.right = '120px';
+        document.body.appendChild(button);
+        
+        button.addEventListener('click', async () => {
+            const permission = await DeviceMotionEvent.requestPermission();
+            if (permission === 'granted') {
+                window.addEventListener('devicemotion', handleMotion);
+                button.remove();
+            }
+        });
+    } else {
+        window.addEventListener('devicemotion', handleMotion);
+    }
+
+function handleDeviceMotion(event) {
+  // Get the acceleration values
+  const { x, y, z } = event.acceleration;
+
+  // Update the display with the acceleration values
+  document.getElementById('accelerationX').textContent = x.toFixed(2);
+  document.getElementById('accelerationY').textContent = y.toFixed(2);
+  document.getElementById('accelerationZ').textContent = z.toFixed(2);
+}    
+  </script>
+</body>
+</html>
