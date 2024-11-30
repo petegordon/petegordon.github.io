@@ -265,13 +265,16 @@
                                 (Math.random() - 0.5) * this.maxRotationSpeed
                             );
                         });
+
+                        //Detect Throw of dice while shaking
+                        const accelerationNoGravity = {
+                            x: event.acceleration.x * 2,
+                            y: event.acceleration.y * 2,
+                            z: event.acceleration.z * 2
+                        };
+                        this.detectThrow(accelerationNoGravity);                        
                     }
-                    const accelerationNoGravity = {
-                        x: event.acceleration.x * 2,
-                        y: event.acceleration.y * 2,
-                        z: event.acceleration.z * 2
-                    };
-                    this.detectThrow(accelerationNoGravity);
+
                 };
 
                 if (typeof DeviceMotionEvent.requestPermission === 'function') {
