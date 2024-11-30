@@ -393,14 +393,14 @@
 
                     this.dice.forEach(die => {
                         die.body.velocity.set(
-                            (Math.random() - 0.5) * 5,
-                            (Math.random() - 0.5) * 5,
-                            -40 // Upward throw velocity
+                            (Math.random() - 0.5) * 10,  // Some sideways spread
+                            80,                         // Upward velocity
+                            -60                         // Strong backward throw
                         );
                         die.body.angularVelocity.set(
-                            Math.random() * 10 - 5,
-                            Math.random() * 10 - 5,
-                            Math.random() * 10 - 5
+                            Math.random() * 15 - 7.5,
+                            Math.random() * 15 - 7.5,
+                            Math.random() * 15 - 7.5
                         );
                     });
                 } else {
