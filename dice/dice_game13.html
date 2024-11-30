@@ -368,6 +368,7 @@
                     this.lastShakeTime = Date.now();
                     this.countShaking++;
                     this.isShaking = true;
+                    updateDebugInfo();
                 }
 
                 if (!isCurrentlyShaking && this.isShaking && (this.lastShakeTime < (Date.now() - 1000))) {
