@@ -67,6 +67,7 @@
                 this.highestTotalAcceleration = 0;  
                 this.countShaking = 0;
                 this.lastShakeTime = 0;
+                this.jerk = 0;
 
 
                 // Box and dice positioning
@@ -353,13 +354,13 @@
                     this.motionHistory.shift();
                 }
 
-                const jerk = Math.abs(
+                this.jerk = Math.abs(
                     this.motionHistory[this.motionHistory.length - 1].acceleration -
                     this.motionHistory[0].acceleration
                 );
 
-                const isCurrentlyShaking = jerk > this.shakeThreshold;
-                this.updateDebugInfo(`Jerk: ${jerk}`, `Threshold: ${this.shakeThreshold}`);
+                const isCurrentlyShaking = this.jerk > this.shakeThreshold;
+                this.updateDebugInfo(`Jerk: ${this.jerk}`, `Threshold: ${this.shakeThreshold}`);
                 if (isCurrentlyShaking && !this.isShaking && (this.lastShakeTime < (Date.now() - 500))) {
                     this.lastShakeTime = Date.now();
                     this.countShaking++;
@@ -474,8 +475,8 @@
 
             updateDebugInfo(...messages) {
                 document.getElementById('debug').innerHTML = 
-                    `Shake: ${messages[0]}<br>` +
-                    `Throw: ${messages[1]}<br>` +
+                    `Jerk: ${messages[0]}<br>` +
+                    `Threshold: ${messages[1]}<br>` +
                     `Dice: ${this.dice.length}<br>` +
                     `Throws detected: ${this.countThrowsDetected}<br>` +
                     `Highest total acceleration: ${this.highestTotalAcceleration.toFixed(2)}<br>` +
