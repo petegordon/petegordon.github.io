@@ -53,7 +53,7 @@
                 this.world = new CANNON.World();
                 
                 this.motionHistory = [];
-                this.shakeThreshold = 8;
+                this.shakeThreshold = 1;
                 this.throwThreshold = 25;
                 this.minShakeTime = 200;
                 this.isShaking = false;
@@ -462,7 +462,7 @@
                 this.updateDicePositions();
                   
                 //this.updateDebugInfo(`Shake ${this.isShaking}`, `Throw ${this.throwDetected}`);
-                this.updateDebugInfo(`Shake ${this.jerk}`, `Threshold ${this.throwThreshold}`);
+                this.updateDebugInfo(`Shake ${this.jerk}`, `Threshold ${this.shakeThreshold}`);
                 
                 this.renderer.render(this.scene, this.camera);
             }
