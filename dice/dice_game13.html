@@ -376,7 +376,7 @@
 
             detectThrow(acceleration) {
                 if (!this.isShaking || this.throwDetected) {
-                    this.updateDebugInfo("Shake: Inactive", "Throw: No");
+                    this.updateDebugInfo();
                     return;
                 }
 
@@ -393,17 +393,11 @@
                 //const zAcceleration = Math.abs(acceleration.z);
                 const zAcceleration = acceleration.z;
 
-                if (zAcceleration < this.highestZAcceleration) {
-                    this.highestZAcceleration = zAcceleration;
-                }
-                if (totalAcceleration > this.highestTotalAcceleration) {
-                    this.highestTotalAcceleration = totalAcceleration;
-                }
                 if (shakeTime > this.highestShakeTime) {
                     this.highestShakeTime = shakeTime;
                 }
 
-                this.updateDebugInfo(`Shake: Active (${shakeTime}ms)`, `Total accel: ${totalAcceleration.toFixed(2)}`, `Z accel: ${zAcceleration.toFixed(2)}`);
+                this.updateDebugInfo();
                 // Check for a sudden, strong upward motion (z-axis acceleration > 20)
                 if (this.isShaking && zAcceleration < -50) {                    
                     this.countThrowsDetected++;
