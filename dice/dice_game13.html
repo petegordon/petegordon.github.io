@@ -477,8 +477,7 @@
 
             updateDebugInfo(...messages) {
                 document.getElementById('debug').innerHTML = 
-                    `Jerk: ${messages[0]}<br>` +
-                    `Threshold: ${messages[1]}<br>` +
+                    `Jerk: ${this.isShaking}<br>` +
                     `Dice: ${this.dice.length}<br>` +
                     `Throws detected: ${this.countThrowsDetected}<br>` +
                     `Highest total acceleration: ${this.highestTotalAcceleration.toFixed(2)}<br>` +
