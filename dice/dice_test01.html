@@ -21,15 +21,19 @@
   <h1>Device Motion Tester</h1>
   <div id="debug"></div>
   <div>
-    <div>X: <span id="accelerationX" class="value">0.00</span></div>
-    <div>Y: <span id="accelerationY" class="value">0.00</span></div>
-    <div>Z: <span id="accelerationZ" class="value">0.00</span></div>
+  <div>Throw: <span id="detectSpan">false</span></div>
+  <div>Throw Time: <span id="detectSpanTime">xx:xx</span></div>
+  </div>
+  <div>
+    <div>X: <span id="accelerationX" class="value">x.xx</span></div>
+    <div>Y: <span id="accelerationY" class="value">x.xx</span></div>
+    <div>Z: <span id="accelerationZ" class="value">x.xx</span></div>
   </div>
   <div>
     <div>with gravity</div>
-    <div>X: <span id="gravityX" class="value">0.00</span></div>
-    <div>Y: <span id="gravityY" class="value">0.00</span></div>
-    <div>Z: <span id="gravityZ" class="value">0.00</span></div>
+    <div>X: <span id="gravityX" class="value">x.xx</span></div>
+    <div>Y: <span id="gravityY" class="value">x.xx</span></div>
+    <div>Z: <span id="gravityZ" class="value">x.xx</span></div>
   </div>
   <script>
     if (typeof DeviceMotionEvent.requestPermission === 'function') {
@@ -50,6 +54,14 @@
         window.addEventListener('devicemotion', handleDeviceMotion);
     }
 
+let lastShake = 0;
+let lastThrow = 0;
+
+let lastX = 0;
+let lastY = 0;
+let lastZ = 0;
+
+
 function handleDeviceMotion(event) {
     // Get the acceleration values
     const { x, y, z } = event.acceleration;
@@ -63,6 +75,19 @@ function handleDeviceMotion(event) {
                         y: event.accelerationIncludingGravity.y * 2,
                         z: event.accelerationIncludingGravity.z * 2
                     };
+
+    if (acceleration.z > 60) {
+        const timeSpan = Date.now() - lastThrow; // Time span in milliseconds
+        // Extract seconds and milliseconds
+        const seconds = Math.floor((timeSpan / 1000) % 60); // Only the seconds part
+        const milliseconds = timeSpan % 1000; // Remaining milliseconds
+
+        // Format as `ss:mmm`
+        const formattedTime = `${seconds.toString().padStart(2, '0')}:${milliseconds.toString().padStart(3, '0')}`;
+
+        document.getElementById('detectSpan').textContent = 'true';
+        document.getElementById('detectSpanTime').textContent = formattedTime;
+    }
     // Update the display with the acceleration values
     document.getElementById('accelerationX').textContent = acceleration.x.toFixed(2);
     document.getElementById('accelerationY').textContent = acceleration.y.toFixed(2);
