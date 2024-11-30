@@ -53,7 +53,7 @@
                 this.world = new CANNON.World();
                 
                 this.motionHistory = [];
-                this.shakeThreshold = 1;
+                this.shakeThreshold = 8;
                 this.throwThreshold = 25;
                 this.minShakeTime = 200;
                 this.isShaking = false;
@@ -364,6 +364,7 @@
                 if (isCurrentlyShaking && !this.isShaking && (this.lastShakeTime < (Date.now() - 500))) {
                     this.lastShakeTime = Date.now();
                     this.countShaking++;
+                    this.isShaking = true;
                 }
                 
                 return isCurrentlyShaking;
