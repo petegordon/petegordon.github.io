@@ -242,7 +242,8 @@
 
                     const acceleration = {
                         x: event.accelerationIncludingGravity.x * 2,
-                        y: event.accelerationIncludingGravity.y * 2
+                        y: event.accelerationIncludingGravity.y * 2,
+                        z: event.accelerationIncludingGravity.z * 2
                     };
 
                     this.isShaking = this.detectShake(acceleration);
