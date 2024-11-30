@@ -397,7 +397,7 @@
 
                 this.updateDebugInfo(`Shake: Active (${shakeTime}ms)`, `Total accel: ${totalAcceleration.toFixed(2)}`, `Z accel: ${zAcceleration.toFixed(2)}`);
                 // Check for a sudden, strong upward motion (z-axis acceleration > 20)
-                if (!this.isShaking && zAcceleration > this.throwThreshold) {                    
+                if (!this.isShaking && zAcceleration < -50) {                    
                     this.countThrowsDetected++;
                    // Simulate vigorous shaking first
                    const shakeSequence = () => {
