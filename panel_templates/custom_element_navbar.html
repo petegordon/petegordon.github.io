@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Navbar Component</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(ellipse 120% 75% at center top, 
+                        rgba(37, 36, 89, 0.95) -45%,  
+                        rgba(0, 0, 0, 0.98) 55%);  
+            color: white;
+            height: 100vh;
+        }
+    </style>
+    <script>
+        class CustomNavbar extends HTMLElement {
+            constructor() {
+                super();
+                this.attachShadow({ mode: "open" });
+
+                this.shadowRoot.innerHTML = `
+                    <style>
+                        :host {
+                            display: block;
+                            font-family: 'Inter', sans-serif;
+                        }
+
+                        .navbar {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            padding: 12px 20px;
+                            color: white;
+                        }
+
+                        .nav-container {
+                            display: flex;
+                            align-items: center;
+                            gap: 12px;
+                            width: 100%;
+                            justify-content: space-between;
+                            z-index: 1;
+                        }
+
+                        .logo {
+                            display: flex;
+                            align-items: center;
+                        }
+
+                        .logo img {
+                            width: 64px;
+                            height: 64px;
+                        }
+
+                        .nav-links {
+                            display: flex;
+                            align-items: center;
+                            gap: 12px;
+                            position: relative;
+                        }
+
+                        .nav-links a {
+                            text-decoration: none;
+                            color: #ccc;
+                            transition: color 0.3s ease-in-out;
+                            padding: 6px 12px;
+                        }
+
+                        .nav-links a:hover {
+                            color: white;
+                        }
+
+                        /* Dropdown */
+                        .dropdown {
+                            position: relative;
+                            display: flex;
+                            align-items: center;
+                        }
+
+                        .dropdown-menu {
+                            position: absolute;
+                            top: 100%;
+                            left: 50%;
+                            transform: translateX(-50%);
+                            background-color: #111;
+                            border-radius: 12px;
+                            padding: 16px;
+                            min-width: 280px;
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            gap: 10px;
+                            box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.3);
+                            opacity: 0.01;
+                            transform: translateY(-10px) translateX(-50%);
+                            transition: opacity 0.3s ease, transform 0.3s ease;
+                            pointer-events: none;
+                        }
+
+                        .dropdown:hover .dropdown-menu,
+                        .dropdown-menu:hover {
+                            opacity: 1;
+                            transform: translateY(0) translateX(-50%);
+                            pointer-events: all;
+                        }
+
+                        .dropdown-item {
+                            display: flex;
+                            align-items: center;
+                            gap: 12px;
+                            padding: 12px;
+                            border-radius: 8px;
+                            transition: background 0.3s ease-in-out, color 0.3s;
+                            cursor: pointer;
+                        }
+
+                        .dropdown-item:hover {
+                            background: #222;
+                            color: white;
+                        }
+
+                        .dropdown-item span {
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            width: 24px;
+                            height: 24px;
+                        }
+
+                        .dropdown:hover > a,
+                        .dropdown-menu:hover ~ a {
+                            color: white !important;
+                            font-weight: 600;
+                        }        
+
+                        /* Hamburger Menu */
+                        .hamburger {
+                            display: none;
+                            cursor: pointer;
+                            font-size: 24px;
+                            color: white;
+                        }
+
+                        @media (max-width: 768px) {
+                            .nav-links {
+                                display: none;
+                                flex-direction: column;
+                                background-color: rgba(0, 0, 0, 0.9);
+                                position: absolute;
+                                top: 85px;
+                                left: 0;
+                                width: 100%;
+                                text-align: center;
+                                padding: 20px 0;
+                                border-top: 1px solid rgba(255, 255, 255, 0.2);
+                            }
+
+                            .nav-links a {
+                                display: block;
+                                padding: 10px 0;
+                            }
+
+                            .hamburger {
+                                display: block;
+                            }
+
+                            .nav-links.active {
+                                display: flex;
+                            }
+                        }
+                    </style>
+
+                    <header class="navbar">
+                        <div class="nav-container">
+                            <div class="logo">
+                                <img src="pythonai_logo.webp" alt="Logo">
+                            </div>  
+
+                            <!-- Hamburger Menu Icon -->
+                            <div class="hamburger" id="hamburger">☰</div>
+
+                            <nav class="nav-links" id="navLinks">
+                                <a href="#">Starter kit</a>
+                                <a href="#">AI</a>
+                                <a href="#">SaaS</a>
+                                <a href="#">Docs</a>
+
+                                <!-- Dropdown for Resources -->
+                                <div class="dropdown">
+                                    <a href="#">Resources</a>
+                                    <div class="dropdown-menu">
+                                        <div class="dropdown-item">
+                                            <span>📜</span> Roadmap
+                                        </div>
+                                        <div class="dropdown-item">
+                                            <span>📖</span> Blog
+                                        </div>
+                                        <div class="dropdown-item">
+                                            <span>❌</span> X
+                                        </div>
+                                        <div class="dropdown-item">
+                                            <span>🐙</span> Github
+                                        </div>
+                                        <div class="dropdown-item">
+                                            <span>💬</span> Discord
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <a href="#">Pricing</a>
+                            </nav>
+                        </div>
+                    </header>
+                `;
+
+                // JavaScript for toggling the hamburger menu
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                const hamburger = this.shadowRoot.getElementById("hamburger");
+                const navLinks = this.shadowRoot.getElementById("navLinks");
+
+                hamburger.addEventListener("click", () => {
+                    navLinks.classList.toggle("active");
+                });
+            }
+        }
+
+        // Register the custom element
+        customElements.define("custom-navbar", CustomNavbar);
+
+        class AnimatedContent extends HTMLElement {
+            constructor() {
+                super();
+
+                // Attach Shadow DOM
+                this.attachShadow({ mode: 'open' });
+
+                // Define component template
+                this.shadowRoot.innerHTML = `
+                    <style>
+                        :host {
+                            display: flex;
+                            flex-direction: column;
+                            height: 50vh;
+                            width: 100vw;
+                            font-family: 'Inter', sans-serif;
+                        }
+
+                        /* Small Content Container */
+                        .small-content-container {
+                            height: 25vh;
+                            display: flex;
+                            justify-content: center;
+                            align-items: flex-end;
+                            position: relative;            
+                            padding: 0 16px; /* Prevents edge-cut on mobile */
+                        }
+
+                        /* Small Content (Styled Button) */
+                        .small-content {
+                            display: flex;
+                            align-items: center;
+                            gap: 10px;
+                            background: rgba(255, 255, 255, 0.1);
+                            border: 1px solid rgba(255, 255, 255, 0.3);
+                            border-radius: 50px;
+                            padding: 10px 20px;
+                            font-size: clamp(10px, 3vw, 14px); /* Adjust font size dynamically */
+                            font-weight: 500;
+                            cursor: pointer;
+                            opacity: 0.01;
+                            transform: translateY(-20px);
+                            animation: fadeDown 1.5s ease-out 0.3s forwards;
+                            transition: background 0.3s ease, border-color 0.3s ease;
+                            position: absolute;
+                            white-space: nowrap;
+                            max-width: 90%; /* Prevents overflow */
+                            text-align: center;
+                            flex-wrap: nowrap;  /* Ensures everything stays in a row */
+                            min-width: 250px;  /* Ensures it doesn’t shrink too much */                            
+                        }
+
+                        /* Ensure left text is bolder */
+                        .small-content .text-left {
+                            font-weight: 600;  /* Bold left text */
+                        }
+
+                        /* Ensure right text is lighter */
+                        .small-content .text-right {
+                            font-size: 10px;
+                            display: flex;
+                            align-items: center;
+                            gap: 2px; /* Add space between text and arrow */
+                            white-space: nowrap; /* Prevents wrapping */
+                        }
+
+                        /* Hover Effect */
+                        .small-content:hover {
+                            background: rgba(255, 255, 255, 0.15);
+                            border-color: rgba(255, 255, 255, 0.5);
+                        }
+
+                        /* Responsive Wrapping */
+                        .small-content span {
+                            display: flex;
+                            flex-wrap: wrap;
+                        }
+
+                        /* Adjust space between right text and arrow */
+                        .arrow {
+                            margin-left: 2px;  /* Adds more space to the left of the arrow */
+                            transition: transform 0.3s ease;
+                        }
+
+                        /* Hover & Active Effects */
+                        .small-content:hover .arrow,
+                        .small-content:active .arrow {
+                            transform: translateX(5px);
+                        }
+
+                        /* Main Content Container */
+                        .main-content-container {
+                            height: 25vh;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            padding: 0 16px; /* Prevents edge-cut on mobile */
+                            text-align: center;
+                        }
+
+                        /* Main Content */
+                        .main-content {
+                            font-size: clamp(18px, 4vw, 32px); /* Adjust font size dynamically */
+                            font-weight: bold;
+                            opacity: 0.01;
+                            transform: translateY(30px);
+                            animation: fadeUp 1.5s ease-out 0.5s forwards;
+                            max-width: 90%; /* Prevents overflow */
+                        }
+
+                        /* Fade-in + slight downward transition */
+                        @keyframes fadeDown {
+                            0% { opacity: 0.01; transform: translateY(-20px); }
+                            100% { opacity: 1; transform: translateY(0); }
+                        }
+
+                        /* Fade-in + slight upward transition */
+                        @keyframes fadeUp {
+                            0% { opacity: 0.01; transform: translateY(30px); }
+                            100% { opacity: 1; transform: translateY(0); }
+                        }
+
+                        /* Responsive Design */
+                        @media (max-width: 600px) {
+                            .small-content {
+                                flex-direction: column;
+                                text-align: center;
+                                padding: 8px 12px;
+                            }
+
+                            .main-content {
+                                font-size: 20px; /* Slightly smaller on mobile */
+                            }
+                        }
+                    </style>
+
+                    <!-- Small Content -->
+                    <div class="small-content-container">
+                        <div class="small-content">
+                            <span class="text-left">Auth and Payment integration</span>
+                            <span class="text-right">Read more<span class="arrow">→</span></span>
+                        </div>
+                    </div>
+
+                    <!-- Main Content -->
+                    <div class="main-content-container">
+                        <div class="main-content">Main Content Fading & Rising</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Register the custom element
+        customElements.define('animated-content', AnimatedContent);        
+    </script>
+</head>
+<body>
+
+    <!-- Using the Custom Element -->
+    <custom-navbar></custom-navbar>
+    <!-- Using the Custom Element -->
+    <animated-content></animated-content>
+
+</body>
+</html>
