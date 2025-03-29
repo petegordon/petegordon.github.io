@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D Motion Dice Roll</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cannon-es@latest/dist/cannon-es.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; background-color: #1a202c; /* Dark background */ }
+        #container { width: 100vw; height: 100vh; display: block; }
+        canvas { display: block; }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            background-color: rgba(45, 55, 72, 0.8); /* Semi-transparent dark gray */
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            max-width: 90%;
+        }
+        #messageBox {
+            position: absolute;
+            bottom: 70px; /* Position above bottom controls */
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(239, 68, 68, 0.9); /* Red background */
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: none; /* Hidden by default */
+            z-index: 110;
+            text-align: center;
+        }
+         #bottomControls {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+        }
+        button, input[type=number] {
+            padding: 8px 15px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        button {
+            background-color: #4a5568; /* Gray */
+            color: white;
+        }
+        button:hover {
+            background-color: #2d3748; /* Darker Gray */
+        }
+        button:active {
+             background-color: #1a202c; /* Even Darker Gray */
+        }
+        input[type=number] {
+            width: 50px;
+            text-align: center;
+            background-color: #e2e8f0; /* Light Gray */
+            color: #1a202c; /* Dark text */
+        }
+        /* Hide number input arrows */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type=number] {
+          -moz-appearance: textfield; /* Firefox */
+        }
+        label { margin-right: 5px; }
+        .mode-label { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <div id="ui">
+        <h2 class="text-lg font-semibold mb-2">Controls</h2>
+        <div class="mb-2">
+            <button id="permissionButton">Enable Motion Control</button>
+            <p class="text-xs mt-1">Requires HTTPS and user permission.</p>
+        </div>
+        <div class="mb-2">
+            <span class="mode-label">Mode:</span>
+            <label>
+                <input type="radio" name="mode" value="random" checked> Random
+            </label>
+            <label>
+                <input type="radio" name="mode" value="predetermined"> Set Numbers
+            </label>
+        </div>
+        <div id="predeterminedInputs" class="mb-2 hidden">
+             <label for="dice1Target">D1:</label>
+             <input type="number" id="dice1Target" min="1" max="6" value="1">
+             <label for="dice2Target">D2:</label>
+             <input type="number" id="dice2Target" min="1" max="6" value="1">
+        </div>
+         <div class="text-sm">Result: <span id="resultText">Shake or Throw</span></div>
+         <div class="text-xs mt-1">Shake phone to wiggle, jerk forward to throw.</div>
+    </div>
+
+    <div id="bottomControls">
+         <button id="manualRollButton">Manual Roll</button>
+    </div>
+
+    <div id="messageBox" role="alert"></div>
+
+    <script type="module">
+        // --- Basic Setup ---
+        const container = document.getElementById('container');
+        const canvas = document.getElementById('gameCanvas');
+        const ui = document.getElementById('ui');
+        const permissionButton = document.getElementById('permissionButton');
+        const manualRollButton = document.getElementById('manualRollButton');
+        const resultText = document.getElementById('resultText');
+        const modeRadios = document.querySelectorAll('input[name="mode"]');
+        const predeterminedInputsDiv = document.getElementById('predeterminedInputs');
+        const dice1TargetInput = document.getElementById('dice1Target');
+        const dice2TargetInput = document.getElementById('dice2Target');
+        const messageBox = document.getElementById('messageBox');
+
+        let scene, camera, renderer, clock;
+        let physicsWorld, diceBodies = [], diceMeshes = [];
+        let groundBody, groundMesh;
+        let allowMotion = false;
+        let isRolling = false;
+        let currentGameMode = 'random'; // 'random' or 'predetermined'
+        let targetNumbers = [1, 1]; // For predetermined mode
+
+        const DICE_SIZE = 1;
+        const DOT_COLOR = 0xeeeeee; // Off-white dots
+        const DICE_COLORS = [0xdc2626, 0x2563eb]; // Red, Blue
+
+        // --- Physics Setup ---
+        function initPhysics() {
+            physicsWorld = new CANNON.World({
+                gravity: new CANNON.Vec3(0, -9.82 * 3, 0) // Slightly stronger gravity
+            });
+            physicsWorld.broadphase = new CANNON.NaiveBroadphase(); // Simple broadphase
+            physicsWorld.solver.iterations = 10; // Solver iterations
+
+            // Materials
+            const diceMaterial = new CANNON.Material('diceMaterial');
+            const groundMaterial = new CANNON.Material('groundMaterial');
+
+            // Contact properties (friction, restitution/bounciness)
+            const diceGroundContactMaterial = new CANNON.ContactMaterial(
+                groundMaterial,
+                diceMaterial,
+                {
+                    friction: 0.1, // Low friction for rolling
+                    restitution: 0.4 // Moderate bounciness
+                }
+            );
+            physicsWorld.addContactMaterial(diceGroundContactMaterial);
+
+             const diceDiceContactMaterial = new CANNON.ContactMaterial(
+                diceMaterial,
+                diceMaterial,
+                {
+                    friction: 0.05,
+                    restitution: 0.5
+                }
+            );
+            physicsWorld.addContactMaterial(diceDiceContactMaterial);
+
+
+            // Ground physics body
+            groundBody = new CANNON.Body({
+                mass: 0, // Mass 0 makes it static
+                shape: new CANNON.Plane(),
+                material: groundMaterial
+            });
+            groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); // Rotate plane to be horizontal
+            physicsWorld.addBody(groundBody);
+
+            // Dice physics bodies
+            const diceShape = new CANNON.Box(new CANNON.Vec3(DICE_SIZE / 2, DICE_SIZE / 2, DICE_SIZE / 2));
+            for (let i = 0; i < 2; i++) {
+                const body = new CANNON.Body({
+                    mass: 1,
+                    shape: diceShape,
+                    material: diceMaterial,
+                    linearDamping: 0.1, // Dampen linear motion over time
+                    angularDamping: 0.1 // Dampen angular motion over time
+                });
+                physicsWorld.addBody(body);
+                diceBodies.push(body);
+            }
+        }
+
+        // --- 3D Scene Setup (Three.js) ---
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a202c); // Match body background
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 8, 8); // Position camera looking down
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true; // Enable shadows
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            clock = new THREE.Clock();
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); // Soft white light
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 10, 7.5);
+            directionalLight.castShadow = true;
+            // Configure shadow properties for better quality
+            directionalLight.shadow.mapSize.width = 1024;
+            directionalLight.shadow.mapSize.height = 1024;
+            directionalLight.shadow.camera.near = 0.5;
+            directionalLight.shadow.camera.far = 50;
+            directionalLight.shadow.camera.left = -10;
+            directionalLight.shadow.camera.right = 10;
+            directionalLight.shadow.camera.top = 10;
+            directionalLight.shadow.camera.bottom = -10;
+            scene.add(directionalLight);
+
+            // Ground mesh
+            const groundGeometry = new THREE.PlaneGeometry(20, 20);
+            const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x374151, side: THREE.DoubleSide }); // Dark Gray ground
+            groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
+            groundMesh.rotation.x = -Math.PI / 2; // Rotate to be horizontal
+            groundMesh.receiveShadow = true; // Allow ground to receive shadows
+            scene.add(groundMesh);
+
+            // Dice meshes (simple boxes for now, add textures/dots later for full version)
+             const diceGeometry = new THREE.BoxGeometry(DICE_SIZE, DICE_SIZE, DICE_SIZE);
+             for (let i = 0; i < 2; i++) {
+                const material = new THREE.MeshStandardMaterial({ color: DICE_COLORS[i] });
+                const mesh = new THREE.Mesh(diceGeometry, material);
+                mesh.castShadow = true; // Allow dice to cast shadows
+                mesh.receiveShadow = true;
+                scene.add(mesh);
+                diceMeshes.push(mesh);
+            }
+        }
+
+        // --- Game Logic ---
+        function resetDice() {
+             isRolling = true;
+             resultText.textContent = "Rolling...";
+             diceBodies.forEach((body, index) => {
+                // Reset position slightly above ground, offset from each other
+                body.position.set((index - 0.5) * (DICE_SIZE * 1.5), 5 + Math.random() * 2, (index - 0.5) * (DICE_SIZE * 0.5));
+                body.velocity.set(0, 0, 0);
+                body.angularVelocity.set(0, 0, 0);
+                // Apply random initial orientation
+                body.quaternion.setFromEuler(
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2
+                );
+            });
+        }
+
+        function throwDice() {
+            if (isRolling) return; // Don't throw if already rolling
+
+            resetDice();
+
+            diceBodies.forEach(body => {
+                // Apply random impulse (force over short time) and torque (rotational force)
+                const forceMagnitude = 10 + Math.random() * 5;
+                const torqueMagnitude = 8 + Math.random() * 4;
+
+                // Random direction for force (mostly forward/up)
+                const forceDirection = new CANNON.Vec3(
+                    (Math.random() - 0.5) * 2,
+                     Math.random() * 0.5 + 0.5, // Bias upwards slightly
+                    (Math.random() - 0.5) * 2
+                ).normalize().scale(forceMagnitude);
+
+                 // Random axis for torque
+                const torqueAxis = new CANNON.Vec3(
+                    Math.random() - 0.5,
+                    Math.random() - 0.5,
+                    Math.random() - 0.5
+                ).normalize().scale(torqueMagnitude);
+
+                body.applyImpulse(forceDirection, body.position); // Apply force at center
+                body.applyTorque(torqueAxis);
+            });
+        }
+
+        // --- Reading Dice Result (Simplified Placeholder) ---
+        // A robust implementation requires mapping model faces to physics orientation.
+        // This function provides a placeholder or a very basic guess.
+        function getDiceFaceUp(body) {
+            // Placeholder: Returns a random number 1-6 for now
+            // return Math.floor(Math.random() * 6) + 1;
+
+            // --- More advanced (but still needs tuning/model mapping) ---
+            const upVector = new CANNON.Vec3(0, 1, 0); // World up direction
+            let maxDot = -Infinity;
+            let closestFaceIndex = -1;
+
+            // Define local axes corresponding to faces (example mapping, adjust to your model)
+            // Order might be: +X (1), -X (6), +Y (2), -Y (5), +Z (3), -Z (4)
+            const localAxes = [
+                new CANNON.Vec3(1, 0, 0), new CANNON.Vec3(-1, 0, 0),
+                new CANNON.Vec3(0, 1, 0), new CANNON.Vec3(0, -1, 0),
+                new CANNON.Vec3(0, 0, 1), new CANNON.Vec3(0, 0, -1)
+            ];
+            const faceValues = [1, 6, 2, 5, 3, 4]; // Corresponding face numbers
+
+             for (let i = 0; i < localAxes.length; i++) {
+                const worldAxis = new CANNON.Vec3();
+                // Transform local axis to world space using the body's quaternion
+                body.quaternion.vmult(localAxes[i], worldAxis);
+                // Calculate dot product with world up vector
+                const dot = worldAxis.dot(upVector);
+                if (dot > maxDot) {
+                    maxDot = dot;
+                    closestFaceIndex = i;
+                }
+            }
+            return faceValues[closestFaceIndex] || (Math.floor(Math.random() * 6) + 1); // Fallback to random if calculation fails
+        }
+
+
+        // --- Check if Dice Have Settled ---
+        function checkDiceSettled() {
+            const sleepThreshold = 0.2; // Velocity threshold to consider 'stopped'
+            let settledCount = 0;
+
+            diceBodies.forEach(body => {
+                const linearSpeed = body.velocity.length();
+                const angularSpeed = body.angularVelocity.length();
+
+                if (linearSpeed < sleepThreshold && angularSpeed < sleepThreshold) {
+                    settledCount++;
+                }
+            });
+
+            return settledCount === diceBodies.length;
+        }
+
+
+        // --- Motion Handling ---
+        const shakeThreshold = 15; // Acceleration threshold for shake detection
+        const throwThreshold = 25; // Acceleration threshold for throw detection
+        let lastAcc = { x: 0, y: 0, z: 0 };
+        let shakeCooldown = 0;
+        let throwCooldown = 0;
+
+        function handleMotion(event) {
+            if (!allowMotion || isRolling) return; // Only process if enabled and not rolling
+
+            const acc = event.acceleration; // Acceleration WITHOUT gravity
+            const currentTime = Date.now();
+
+            if (!acc || acc.x === null) {
+                 // Some devices might only provide accelerationIncludingGravity
+                 // Handling that is more complex as you need to filter out gravity.
+                 // For now, we rely on `event.acceleration`.
+                 // showMessage("Motion sensor data 'acceleration' not available or reliable on this device.", 5000);
+                 // allowMotion = false; // Disable if data is bad
+                 return;
+            }
+
+            const deltaAcc = {
+                x: Math.abs(acc.x - lastAcc.x),
+                y: Math.abs(acc.y - lastAcc.y),
+                z: Math.abs(acc.z - lastAcc.z)
+            };
+            lastAcc = { x: acc.x, y: acc.y, z: acc.z };
+
+            const totalDelta = deltaAcc.x + deltaAcc.y + deltaAcc.z;
+
+            // --- Throw Detection (Simple: sharp forward acceleration) ---
+            // This is basic, needs refinement. Assumes phone held somewhat flat, jerked forward.
+             // Check Z-axis acceleration (often corresponds to forward/backward when phone flat)
+            if (acc.z < -throwThreshold && currentTime > throwCooldown) { // Sharp backward acceleration (jerk forward)
+                console.log("Throw detected!", acc.z);
+                throwDice();
+                throwCooldown = currentTime + 1500; // 1.5 second cooldown
+                shakeCooldown = currentTime + 1500; // Prevent shake right after throw
+                return; // Prioritize throw over shake
+            }
+
+
+            // --- Shake Detection ---
+            if (totalDelta > shakeThreshold && currentTime > shakeCooldown) {
+                console.log("Shake detected!", totalDelta);
+                // Simple visual shake (wiggle meshes) - doesn't use physics
+                diceMeshes.forEach(mesh => {
+                    const intensity = 0.1;
+                    mesh.position.x += (Math.random() - 0.5) * intensity;
+                    mesh.position.z += (Math.random() - 0.5) * intensity;
+                });
+                resultText.textContent = "Shaking...";
+                shakeCooldown = currentTime + 300; // 300ms cooldown
+            }
+        }
+
+        function requestMotionPermission() {
+            if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+                // iOS 13+ requires explicit permission
+                DeviceMotionEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            window.addEventListener('devicemotion', handleMotion);
+                            allowMotion = true;
+                            showMessage("Motion controls enabled!", 3000, 'success');
+                            permissionButton.textContent = "Motion Enabled";
+                            permissionButton.disabled = true;
+                        } else {
+                            showMessage("Permission denied for motion sensors.", 5000);
+                        }
+                    })
+                    .catch(error => {
+                         console.error(error);
+                         showMessage("Error requesting motion permission.", 5000);
+                    });
+            } else if (typeof DeviceMotionEvent !== 'undefined') {
+                 // Non-iOS 13+ browsers (or those that don't require explicit permission)
+                 // Check if it's HTTPS - required for sensors
+                 if (window.location.protocol !== 'https:') {
+                     showMessage("Motion sensors require HTTPS.", 5000);
+                     return;
+                 }
+                 window.addEventListener('devicemotion', handleMotion);
+                 allowMotion = true;
+                 showMessage("Motion controls likely enabled (if supported by browser/device).", 3000, 'success');
+                 permissionButton.textContent = "Motion Enabled";
+                 permissionButton.disabled = true;
+            } else {
+                showMessage("Device motion events not supported by this browser.", 5000);
+            }
+        }
+
+        // --- UI Helpers ---
+        function showMessage(message, duration = 3000, type = 'error') {
+            messageBox.textContent = message;
+            messageBox.style.backgroundColor = type === 'success' ? 'rgba(74, 222, 128, 0.9)' : 'rgba(239, 68, 68, 0.9)'; // Green for success, Red for error
+            messageBox.style.display = 'block';
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, duration);
+        }
+
+        function updateUIMode() {
+             currentGameMode = document.querySelector('input[name="mode"]:checked').value;
+             if (currentGameMode === 'predetermined') {
+                 predeterminedInputsDiv.classList.remove('hidden');
+                 targetNumbers[0] = parseInt(dice1TargetInput.value) || 1;
+                 targetNumbers[1] = parseInt(dice2TargetInput.value) || 1;
+             } else {
+                 predeterminedInputsDiv.classList.add('hidden');
+             }
+        }
+
+        // --- Animation Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const deltaTime = clock.getDelta();
+
+            // Step the physics world
+             if (physicsWorld && isRolling) {
+                 physicsWorld.step(1 / 60, deltaTime, 3); // Fixed timestep, delta, max sub-steps
+            }
+
+            // Update mesh positions from physics bodies
+            diceMeshes.forEach((mesh, index) => {
+                if (diceBodies[index]) {
+                    mesh.position.copy(diceBodies[index].position);
+                    mesh.quaternion.copy(diceBodies[index].quaternion);
+                }
+            });
+
+            // Check if dice have settled
+            if (isRolling && checkDiceSettled()) {
+                 isRolling = false;
+                 console.log("Dice settled.");
+
+                 let results = [];
+                 if (currentGameMode === 'random') {
+                     // Read actual physics results
+                     results = diceBodies.map(body => getDiceFaceUp(body));
+                     console.log("Random results:", results);
+                 } else {
+                     // Use predetermined target numbers
+                     results = [...targetNumbers]; // Copy target numbers
+                     console.log("Predetermined results:", results);
+                     // --- Force visual rotation (CHEAT) ---
+                     // This part needs a function to map target number to required quaternion
+                     // For now, we just log it. A full implementation would calculate
+                     // the correct THREE.Quaternion for each mesh based on results[i].
+                     // forceDiceRotation(diceMeshes[0], results[0]);
+                     // forceDiceRotation(diceMeshes[1], results[1]);
+                 }
+
+                 resultText.textContent = `Rolled: ${results[0]} + ${results[1]} = ${results[0] + results[1]}`;
+
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // --- Event Listeners ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        permissionButton.addEventListener('click', requestMotionPermission);
+        manualRollButton.addEventListener('click', throwDice);
+
+        modeRadios.forEach(radio => {
+            radio.addEventListener('change', updateUIMode);
+        });
+        dice1TargetInput.addEventListener('change', () => {
+            if (currentGameMode === 'predetermined') {
+                 targetNumbers[0] = parseInt(dice1TargetInput.value) || 1;
+            }
+        });
+         dice2TargetInput.addEventListener('change', () => {
+            if (currentGameMode === 'predetermined') {
+                 targetNumbers[1] = parseInt(dice2TargetInput.value) || 1;
+            }
+        });
+
+
+        // --- Initialization ---
+        initThree();
+        initPhysics();
+        updateUIMode(); // Set initial UI state based on default radio button
+        animate();
+
+        showMessage("Shake phone to wiggle, jerk forward to throw, or use Manual Roll.", 5000, 'success');
+
+    </script>
+</body>
+</html>
