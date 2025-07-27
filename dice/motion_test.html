@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Motion Access Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 2em;
+    }
+    #motion-output {
+      margin-top: 2em;
+      font-size: 1.2em;
+      white-space: pre-wrap;
+    }
+    button {
+      font-size: 1.2em;
+      padding: 0.5em 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Motion Access Test</h1>
+  <p>This test will request motion sensor access on iOS.</p>
+  <button id="enable-button">Enable Motion Access</button>
+  <div id="motion-output"></div>
+
+  <script>
+    const output = document.getElementById('motion-output');
+    const enableButton = document.getElementById('enable-button');
+
+    function handleMotion(event) {
+      const acc = event.accelerationIncludingGravity;
+      const rot = event.rotationRate;
+      output.textContent = `
+Accelerometer:
+  x: ${acc.x?.toFixed(2)} m/s²
+  y: ${acc.y?.toFixed(2)} m/s²
+  z: ${acc.z?.toFixed(2)} m/s²
+
+Rotation Rate:
+  alpha: ${rot.alpha?.toFixed(2)} deg/s
+  beta:  ${rot.beta?.toFixed(2)} deg/s
+  gamma: ${rot.gamma?.toFixed(2)} deg/s
+`;
+    }
+
+    enableButton.addEventListener('click', () => {
+      if (typeof DeviceMotionEvent.requestPermission === 'function') {
+        // iOS 13+
+        DeviceMotionEvent.requestPermission()
+          .then(permissionState => {
+            if (permissionState === 'granted') {
+              window.addEventListener('devicemotion', handleMotion);
+              enableButton.disabled = true;
+              enableButton.textContent = "Motion Enabled";
+            } else {
+              alert('Permission denied');
+            }
+          })
+          .catch(error => {
+            console.error('Request failed', error);
+            alert('Permission request failed');
+          });
+      } else {
+        // Non-iOS or iOS before 13
+        window.addEventListener('devicemotion', handleMotion);
+        en
