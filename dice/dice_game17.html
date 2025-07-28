@@ -851,38 +851,55 @@
             }
 
             executeThrow() {
+                console.log("EXECUTE THROW CALLED!");
+                
                 if (this.isTestShaking) {
                     this.stopTestShake();
                 }
 
                 this.throwDetected = true;
+                console.log("Set throwDetected to true");
                 
+                // Remove ceiling to allow dice to escape
                 if (this.ceiling) {
+                    console.log("Removing ceiling from world...");
                     this.world.removeBody(this.ceiling);
-                    this.ceiling = null; // Make sure it's set to null for proper detection
+                    this.ceiling = null;
+                    console.log("Ceiling removed successfully");
+                } else {
+                    console.log("WARNING: Ceiling was already null or undefined");
                 }
 
-                this.dice.forEach(die => {
-                    die.body.velocity.set(
-                        (Math.random() - 0.5) * 20,  
-                        (Math.random() - 0.5) * 20, 
-                        (Math.random() - 0.5) * 20
-                    );
+                // First phase - initial random movement
+                console.log("Applying initial random velocities to dice...");
+                this.dice.forEach((die, index) => {
+                    const initialVel = {
+                        x: (Math.random() - 0.5) * 20,
+                        y: (Math.random() - 0.5) * 20,
+                        z: (Math.random() - 0.5) * 20
+                    };
+                    die.body.velocity.set(initialVel.x, initialVel.y, initialVel.z);
+                    console.log(`Die ${index} initial velocity: (${initialVel.x.toFixed(1)}, ${initialVel.y.toFixed(1)}, ${initialVel.z.toFixed(1)})`);
                 });
 
+                // Second phase - strong upward throw after delay
                 setTimeout(() => {
-                    this.dice.forEach(die => {
-                        die.body.velocity.set(
-                            (Math.random() - 0.5) * 15,
-                            60,
-                            -40
-                        );
+                    console.log("Applying final throw velocities...");
+                    this.dice.forEach((die, index) => {
+                        const throwVel = {
+                            x: (Math.random() - 0.5) * 15,
+                            y: 60,  // Strong upward
+                            z: -40  // Strong backward
+                        };
+                        die.body.velocity.set(throwVel.x, throwVel.y, throwVel.z);
                         die.body.angularVelocity.set(
                             Math.random() * 20 - 10,
                             Math.random() * 20 - 10,
                             Math.random() * 20 - 10
                         );
+                        console.log(`Die ${index} throw velocity: (${throwVel.x.toFixed(1)}, ${throwVel.y.toFixed(1)}, ${throwVel.z.toFixed(1)})`);
                     });
+                    console.log("Throw sequence complete!");
                 }, 300);
             }
 
@@ -956,6 +973,8 @@
                     `Throws detected: ${this.countThrowsDetected}<br>` +
                     `<br><strong>PHYSICS DEBUG</strong><br>` +
                     `Applying physics: ${this.isShaking && !this.throwDetected}<br>` +
+                    `Throw detected: ${this.throwDetected}<br>` +
+                    `Ceiling exists: ${this.ceiling !== null && this.ceiling !== undefined}<br>` +
                     `Dice 0 velocity: (${this.dice.length > 0 ? this.dice[0].body.velocity.x.toFixed(1) : 'N/A'}, ${this.dice.length > 0 ? this.dice[0].body.velocity.y.toFixed(1) : 'N/A'}, ${this.dice.length > 0 ? this.dice[0].body.velocity.z.toFixed(1) : 'N/A'})<br>` +
                     `Dice 0 position: (${this.dice.length > 0 ? this.dice[0].body.position.x.toFixed(1) : 'N/A'}, ${this.dice.length > 0 ? this.dice[0].body.position.y.toFixed(1) : 'N/A'}, ${this.dice.length > 0 ? this.dice[0].body.position.z.toFixed(1) : 'N/A'})<br>` +
                     `Target velocity: (${this.dice.length > 0 && this.dice[0].targetVelocity ? this.dice[0].targetVelocity.x.toFixed(1) : 'N/A'}, ${this.dice.length > 0 && this.dice[0].targetVelocity ? this.dice[0].targetVelocity.y.toFixed(1) : 'N/A'}, ${this.dice.length > 0 && this.dice[0].targetVelocity ? this.dice[0].targetVelocity.z.toFixed(1) : 'N/A'})<br>` +
