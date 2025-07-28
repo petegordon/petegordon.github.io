@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dice Motion - Unified</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden;
+            background: #0000ff;
+        }
+        canvas { 
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+        }
+        #debug {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            font-family: monospace;
+            z-index: 1000;
+            font-size: 12px;
+            max-width: 300px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .motion-button {
+            position: fixed;
+            top: 20px;
+            right: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            z-index: 1000;
+            background: #d32f2f;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .shake-button {
+            position: fixed;
+            top: 70px;
+            right: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            z-index: 1000;
+            background: #2e7d32;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .shake-button.active {
+            background: #ff9800;
+        }
+    </style>
+</head>
+<body>
+    <div id="debug">Waiting for motion...</div>    
+    <button id="testButton" class="motion-button">Test Throw</button>
+    <button id="shakeButton" class="shake-button">Start Shake Test</button>
+    <canvas id="gameCanvas"></canvas>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+    <script>
+        class DiceGame {
+            constructor() {
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x0000ff);
+                this.dice = [];
+                this.world = new CANNON.World();
+                
+                // Motion detection parameters - using doc1 values that worked
+                this.motionHistory = [];
+                this.shakeThreshold = 8;
+                this.throwThreshold = 25;
+                this.minShakeTime = 200;
+                this.isShaking = false;
+                this.throwDetected = false;
+                this.maxRotationSpeed = 15;
+                this.smoothAcceleration = 0.3;
+
+                // Debug counters
+                this.countThrowsDetected = 0;
+                this.highestZAcceleration = 0;
+                this.highestShakeTime = 0;
+                this.highestTotalAcceleration = 0;  
+                this.countShaking = 0;
+                this.lastShakeTime = 0;
+                this.jerk = 0;
+
+                // Test mode variables
+                this.isTestShaking = false;
+                this.testShakeInterval = null;
+                this.accelerationSource = 'none';
+                this.lastAcceleration = { x: 0, y: 0, z: 0 };
+
+                // Camera following system
+                this.cameraFollowing = false;
+                this.originalCameraPosition = new THREE.Vector3(0, 0, 100);
+                this.originalCameraRotation = new THREE.Euler(0, 0, 0);
+                this.cameraTarget = new THREE.Vector3(0, 0, 0);
+                this.cameraLookAt = new THREE.Vector3(0, 0, 0);
+                this.cameraFollowSpeed = 0.02;
+                this.cameraRotationSpeed = 0.015;
+
+                // Box and dice positioning
+                this.viewportHeight = window.innerHeight;
+                this.boxHeight = 16;
+                this.boxY = -30;
+                this.boxDepth = 16;
+                this.boxWidth = 35;
+                this.diceOffsetFromFloor = 0;
+                                
+                this.initializeScene();
+                this.initializePhysics();
+                this.initializeLights();
+                this.createBoundaries();
+                this.createLandingFloor();
+                this.createDice();
+                this.setupMotionHandling();
+                this.setupTestButton();
+                this.setupShakeTestButton();
+                this.animate();
+            }
+
+            initializeScene() {
+                this.renderer = new THREE.WebGLRenderer({ 
+                    canvas: document.getElementById('gameCanvas'),
+                    antialias: true 
+                });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                
+                const aspect = window.innerWidth / window.innerHeight;
+                this.camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 2000);
+                this.camera.position.set(0, 0, 100);
+                this.camera.lookAt(0, 0, 0);
+                
+                // Store original camera state
+                this.originalCameraPosition.copy(this.camera.position);
+                this.originalCameraRotation.copy(this.camera.rotation);
+            }
+
+            initializePhysics() {
+                this.world.gravity.set(0, -9.8, 0);
+                this.world.broadphase = new CANNON.NaiveBroadphase();
+                this.world.solver.iterations = 20;
+                this.physicsMaterial = new CANNON.Material({
+                    friction: 0,
+                    restitution: 0.6
+                });
+            }
+
+            initializeLights() {
+                // Softer ambient light
+                this.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+                
+                // Main lights - positioned further away and less intense
+                const lightPositions = [[-25, 15, -25], [25, 15, -25], [-25, 15, 25], [25, 15, 25]];
+                this.mainLights = [];
+                
+                lightPositions.forEach(pos => {
+                    const light = new THREE.PointLight(0xffffff, 0.4, 100);
+                    light.position.set(...pos);
+                    light.castShadow = true;
+                    light.shadow.mapSize.width = 1024;
+                    light.shadow.mapSize.height = 1024;
+                    this.scene.add(light);
+                    this.mainLights.push(light);
+                });
+                
+                // Add a softer directional light for general illumination
+                this.directionalLight = new THREE.DirectionalLight(0xffffff, 0.3);
+                this.directionalLight.position.set(0, 50, 30);
+                this.directionalLight.target.position.set(0, 0, 50);
+                this.directionalLight.castShadow = true;
+                this.scene.add(this.directionalLight);
+                this.scene.add(this.directionalLight.target);
+            }
+
+            createBoundaries() {
+                const wallShape = new CANNON.Plane();
+                const floorY = this.boxY - this.boxHeight/2;
+                const ceilingY = this.boxY + this.boxHeight/2;
+                
+                const walls = [
+                    { pos: [-15, this.boxY, 0], rot: [0, Math.PI/2, 0] },
+                    { pos: [15, this.boxY, 0], rot: [0, -Math.PI/2, 0] },
+                    { pos: [0, floorY, 0], rot: [-Math.PI/2, 0, 0] },
+                    { pos: [0, this.boxY, -8], rot: [0, 0, 0] },
+                    { pos: [0, this.boxY, 8], rot: [Math.PI, 0, 0] }
+                ];
+
+                walls.forEach(wall => {
+                    const body = new CANNON.Body({ 
+                        mass: 0, 
+                        material: this.physicsMaterial 
+                    });
+                    body.addShape(wallShape);
+                    body.position.set(...wall.pos);
+                    body.quaternion.setFromEuler(...wall.rot);
+                    this.world.addBody(body);
+                });
+
+                this.ceiling = new CANNON.Body({ 
+                    mass: 0, 
+                    material: this.physicsMaterial 
+                });
+                this.ceiling.addShape(wallShape);
+                this.ceiling.position.set(0, ceilingY, 0);
+                this.ceiling.quaternion.setFromEuler(Math.PI/2, 0, 0);
+                this.world.addBody(this.ceiling);
+
+                this.boundaryBox = new THREE.LineSegments(
+                    new THREE.EdgesGeometry(new THREE.BoxGeometry(this.boxWidth, this.boxHeight, this.boxDepth)),
+                    new THREE.LineBasicMaterial({ color: 0xffffff })
+                );
+                this.boundaryBox.position.set(0, this.boxY, 0);
+                this.scene.add(this.boundaryBox);
+            }
+
+            createLandingFloor() {
+                // Create craps table felt texture
+                const canvas = document.createElement('canvas');
+                canvas.width = 512;
+                canvas.height = 512;
+                const ctx = canvas.getContext('2d');
+                
+                // Base felt green
+                ctx.fillStyle = '#0F5132';
+                ctx.fillRect(0, 0, 512, 512);
+                
+                // Add felt texture with random fibers
+                for (let i = 0; i < 8000; i++) {
+                    const x = Math.random() * 512;
+                    const y = Math.random() * 512;
+                    const length = Math.random() * 3 + 1;
+                    const angle = Math.random() * Math.PI * 2;
+                    
+                    ctx.strokeStyle = `rgba(${Math.random() * 40 + 15}, ${Math.random() * 80 + 81}, ${Math.random() * 50 + 50}, 0.3)`;
+                    ctx.lineWidth = 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + Math.cos(angle) * length, y + Math.sin(angle) * length);
+                    ctx.stroke();
+                }
+                
+                // Add subtle diamond pattern like casino felt
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.lineWidth = 1;
+                for (let x = 0; x < 512; x += 64) {
+                    for (let y = 0; y < 512; y += 64) {
+                        ctx.beginPath();
+                        ctx.moveTo(x + 32, y);
+                        ctx.lineTo(x + 64, y + 32);
+                        ctx.lineTo(x + 32, y + 64);
+                        ctx.lineTo(x, y + 32);
+                        ctx.closePath();
+                        ctx.stroke();
+                    }
+                }
+                
+                const feltTexture = new THREE.CanvasTexture(canvas);
+                feltTexture.wrapS = feltTexture.wrapT = THREE.RepeatWrapping;
+                feltTexture.repeat.set(4, 6); // Repeat to cover the large floor
+                
+                // Create floor geometry and material
+                const floorGeometry = new THREE.PlaneGeometry(200, 300);
+                const floorMaterial = new THREE.MeshStandardMaterial({ 
+                    map: feltTexture,
+                    color: 0x0F5132,
+                    roughness: 0.95,
+                    metalness: 0.0,
+                    bumpMap: feltTexture,
+                    bumpScale: 0.02
+                });
+                
+                this.landingFloor = new THREE.Mesh(floorGeometry, floorMaterial);
+                this.landingFloor.rotation.x = -Math.PI / 2;
+                this.landingFloor.position.set(0, -100, 50);
+                this.landingFloor.receiveShadow = true;
+                this.scene.add(this.landingFloor);
+                
+                // Physics floor
+                const floorShape = new CANNON.Plane();
+                this.landingFloorBody = new CANNON.Body({ 
+                    mass: 0, 
+                    material: this.physicsMaterial 
+                });
+                this.landingFloorBody.addShape(floorShape);
+                this.landingFloorBody.position.set(0, -100, 50);
+                this.landingFloorBody.quaternion.setFromEuler(-Math.PI/2, 0, 0);
+                this.world.addBody(this.landingFloorBody);
+            }
+
+            createDice() {
+                const geometry = new THREE.BoxGeometry(10, 10, 10);
+                const shape = new CANNON.Box(new CANNON.Vec3(5, 5, 5));
+                const materials = this.createDiceMaterial();
+
+                const diceY = this.boxY - this.boxHeight/2 + this.diceOffsetFromFloor;
+
+                [-8.5, 8.5].forEach((x) => {
+                    const diceMesh = new THREE.Mesh(geometry, materials);
+                    diceMesh.position.set(x, 3, 0);
+                    diceMesh.castShadow = true;
+                    diceMesh.receiveShadow = true;
+                    this.scene.add(diceMesh);
+
+                    const diceBody = new CANNON.Body({
+                        mass: 1,
+                        material: this.physicsMaterial,
+                        shape: shape,
+                        linearDamping: 0.8,
+                        angularDamping: 0.8
+                    });
+                    diceBody.position.set(x, diceY, 0);
+                    this.world.addBody(diceBody);
+
+                    this.dice.push({
+                        mesh: diceMesh,
+                        body: diceBody,
+                        targetVelocity: new CANNON.Vec3(0, 0, 0)
+                    });
+                });
+            }
+
+            createDiceMaterial() {
+                const positions = [
+                    [[128, 128]],
+                    [[64, 64], [192, 192]],
+                    [[64, 64], [128, 128], [192, 192]],
+                    [[64, 64], [64, 192], [192, 64], [192, 192]],
+                    [[64, 64], [64, 192], [128, 128], [192, 64], [192, 192]],
+                    [[64, 64], [64, 128], [64, 192], [192, 64], [192, 128], [192, 192]]
+                ];
+
+                return positions.map(dots => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = canvas.height = 256;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Dice background - more matte red
+                    ctx.fillStyle = '#8B0000';
+                    ctx.fillRect(0, 0, 256, 256);
+                    
+                    // Add subtle texture to make surface less reflective
+                    for (let i = 0; i < 500; i++) {
+                        const x = Math.random() * 256;
+                        const y = Math.random() * 256;
+                        ctx.fillStyle = `rgba(${Math.random() * 40 + 120}, 0, 0, 0.1)`;
+                        ctx.fillRect(x, y, 1, 1);
+                    }
+                    
+                    // White dots
+                    ctx.fillStyle = '#ffffff';
+                    dots.forEach(([x, y]) => {
+                        ctx.beginPath();
+                        ctx.arc(x, y, 24, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                    
+                    return new THREE.MeshStandardMaterial({
+                        map: new THREE.CanvasTexture(canvas),
+                        metalness: 0.1,  // Much less metallic
+                        roughness: 0.8   // Much more rough/matte
+                    });
+                });
+            }
+
+            setupMotionHandling() {
+                let lastUpdate = Date.now();
+                const handleMotion = (event) => {
+                    const now = Date.now();
+                    if (now - lastUpdate < 16) return;
+                    lastUpdate = now;
+
+                    const acceleration = {
+                        x: event.accelerationIncludingGravity.x * 2,
+                        y: event.accelerationIncludingGravity.y * 2,
+                        z: event.accelerationIncludingGravity.z * 2
+                    };
+
+                    this.lastAcceleration = acceleration;
+                    this.accelerationSource = 'device';
+
+                    this.isShaking = this.detectShake(acceleration);
+                    if (this.throwDetected) return;
+
+                    if (this.isShaking) {
+                        this.dice.forEach(die => {
+                            const force = 200;
+                            die.targetVelocity.x = acceleration.x * force;
+                            die.targetVelocity.y = Math.abs(acceleration.y) * force/2;
+                            die.targetVelocity.z = (Math.random() - 0.5) * force;
+                            
+                            die.body.angularVelocity.set(
+                                (Math.random() - 0.5) * this.maxRotationSpeed,
+                                (Math.random() - 0.5) * this.maxRotationSpeed,
+                                (Math.random() - 0.5) * this.maxRotationSpeed
+                            );
+                        });
+
+                        // Detect throw while shaking
+                        const accelerationNoGravity = {
+                            x: event.acceleration.x * 2,
+                            y: event.acceleration.y * 2,
+                            z: event.acceleration.z * 2
+                        };
+                        this.detectThrow(accelerationNoGravity);                        
+                    }
+                };
+
+                if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                    const button = document.createElement('button');
+                    button.textContent = 'Enable Motion';
+                    button.className = 'motion-button';
+                    button.style.right = '120px';
+                    document.body.appendChild(button);
+                    
+                    button.addEventListener('click', async () => {
+                        const permission = await DeviceMotionEvent.requestPermission();
+                        if (permission === 'granted') {
+                            window.addEventListener('devicemotion', handleMotion);
+                            button.remove();
+                        }
+                    });
+                } else {
+                    window.addEventListener('devicemotion', handleMotion);
+                }
+            }
+
+            setupTestButton() {
+                document.getElementById('testButton').addEventListener('click', () => {
+                    this.executeThrow();
+                });
+            }
+
+            setupShakeTestButton() {
+                const shakeButton = document.getElementById('shakeButton');
+                
+                shakeButton.addEventListener('click', () => {
+                    if (this.isTestShaking) {
+                        this.stopTestShake();
+                    } else {
+                        this.startTestShake();
+                    }
+                });
+            }
+
+            startTestShake() {
+                // Reset everything to original state first
+                if (this.throwDetected) {
+                    this.resetToOriginalPosition();
+                }
+                
+                this.isTestShaking = true;
+                this.isShaking = true;
+                this.lastShakeTime = Date.now();
+                this.countShaking++;
+                this.throwDetected = false;
+                this.accelerationSource = 'test_shake';
+                
+                const shakeButton = document.getElementById('shakeButton');
+                shakeButton.textContent = 'Stop Shake Test';
+                shakeButton.classList.add('active');
+
+                // Restore ceiling if it was removed
+                if (!this.ceiling) {
+                    const wallShape = new CANNON.Plane();
+                    this.ceiling = new CANNON.Body({ 
+                        mass: 0, 
+                        material: this.physicsMaterial 
+                    });
+                    this.ceiling.addShape(wallShape);
+                    const ceilingY = this.boxY + this.boxHeight/2;
+                    this.ceiling.position.set(0, ceilingY, 0);
+                    this.ceiling.quaternion.setFromEuler(Math.PI/2, 0, 0);
+                    this.world.addBody(this.ceiling);
+                }
+                
+                this.testShakeInterval = setInterval(() => {
+                    const time = Date.now() * 0.01;
+                    const shakeIntensity = 12;
+                    
+                    this.lastAcceleration = {
+                        x: Math.sin(time) * shakeIntensity + (Math.random() - 0.5) * 4,
+                        y: Math.cos(time * 1.3) * shakeIntensity + (Math.random() - 0.5) * 4,
+                        z: 9.8 + Math.sin(time * 0.7) * 2
+                    };
+
+                    // Apply shake physics directly like in doc1
+                    this.dice.forEach(die => {
+                        die.body.velocity.set(
+                            (Math.random() - 0.5) * 8,
+                            (Math.random() - 0.5) * 8,
+                            (Math.random() - 0.5) * 8
+                        );
+                        die.body.angularVelocity.set(
+                            Math.random() * 15 - 7.5,
+                            Math.random() * 15 - 7.5,
+                            Math.random() * 15 - 7.5
+                        );
+                    });
+
+                    this.isShaking = true;
+                }, 50);
+            }
+
+            stopTestShake() {
+                this.isTestShaking = false;
+                this.isShaking = false;
+                this.accelerationSource = 'none';
+                
+                const shakeButton = document.getElementById('shakeButton');
+                shakeButton.textContent = 'Start Shake Test';
+                shakeButton.classList.remove('active');
+
+                if (this.testShakeInterval) {
+                    clearInterval(this.testShakeInterval);
+                    this.testShakeInterval = null;
+                }
+
+                this.lastAcceleration = { x: 0, y: 0, z: 0 };
+            }
+
+            detectShake(acceleration) {
+                const totalAcceleration = Math.sqrt(
+                    acceleration.x * acceleration.x +
+                    acceleration.y * acceleration.y
+                );
+
+                this.motionHistory.push({
+                    acceleration: totalAcceleration,
+                    timestamp: Date.now()
+                });
+
+                if (this.motionHistory.length > 10) {
+                    this.motionHistory.shift();
+                }
+
+                this.jerk = Math.abs(
+                    this.motionHistory[this.motionHistory.length - 1].acceleration -
+                    this.motionHistory[0].acceleration
+                );
+
+                const isCurrentlyShaking = this.jerk > this.shakeThreshold;
+                if (isCurrentlyShaking && !this.isShaking) {
+                    this.lastShakeTime = Date.now();
+                    this.countShaking++;
+                    this.isShaking = true;
+                    
+                    // Reset to original position when any shaking starts (device motion or test)
+                    if (this.throwDetected || this.cameraFollowing) {
+                        this.resetToOriginalPosition();
+                    }
+                }
+
+                if (!isCurrentlyShaking && this.isShaking && (this.lastShakeTime < (Date.now() - 1000))) {
+                    this.isShaking = false;
+                }
+
+                return isCurrentlyShaking;
+            }
+
+            resetToOriginalPosition() {
+                console.log("Resetting to original position after throw...");
+                
+                // Reset throw state
+                this.throwDetected = false;
+                this.cameraFollowing = false;
+                
+                // Restore original camera position and rotation
+                this.camera.position.copy(this.originalCameraPosition);
+                this.camera.rotation.copy(this.originalCameraRotation);
+                this.camera.lookAt(0, 0, 0);
+                
+                // Show boundary box again
+                this.boundaryBox.visible = true;
+                
+                // Restore lighting intensity
+                this.mainLights.forEach(light => {
+                    light.intensity = 0.4;
+                });
+                if (this.directionalLight) {
+                    this.directionalLight.intensity = 0.3;
+                }
+                
+                // Re-add ceiling if it was removed
+                if (!this.ceiling) {
+                    const wallShape = new CANNON.Plane();
+                    this.ceiling = new CANNON.Body({ 
+                        mass: 0, 
+                        material: this.physicsMaterial 
+                    });
+                    this.ceiling.addShape(wallShape);
+                    const ceilingY = this.boxY + this.boxHeight/2;
+                    this.ceiling.position.set(0, ceilingY, 0);
+                    this.ceiling.quaternion.setFromEuler(Math.PI/2, 0, 0);
+                    this.world.addBody(this.ceiling);
+                }
+                
+                // Reset dice to original positions and properties
+                const diceY = this.boxY - this.boxHeight/2 + this.diceOffsetFromFloor;
+                const positions = [-8.5, 8.5];
+                
+                this.dice.forEach((die, index) => {
+                    // Reset physics properties
+                    die.body.linearDamping = 0.8;
+                    die.body.angularDamping = 0.8;
+                    
+                    // Reset position and velocities
+                    die.body.position.set(positions[index], diceY, 0);
+                    die.body.velocity.set(0, 0, 0);
+                    die.body.angularVelocity.set(0, 0, 0);
+                    die.body.quaternion.set(0, 0, 0, 1);
+                    
+                    // Reset visual mesh
+                    die.mesh.position.copy(die.body.position);
+                    die.mesh.quaternion.copy(die.body.quaternion);
+                    
+                    // Reset target velocity
+                    if (die.targetVelocity) {
+                        die.targetVelocity.set(0, 0, 0);
+                    }
+                });
+                
+                console.log("Reset complete - ready for new game");
+            }
+
+            detectThrow(acceleration) {
+                if (!this.isShaking || this.throwDetected) return;
+
+                const shakeTime = Date.now() - this.lastShakeTime;
+
+                if (shakeTime > this.highestShakeTime) {
+                    this.highestShakeTime = shakeTime;
+                }
+
+                const zAcceleration = acceleration.z;
+
+                if (this.isShaking && zAcceleration < -50) {                    
+                    this.countThrowsDetected++;
+                    this.executeThrow();
+                }
+            }
+
+            executeThrow() {
+                if (this.isTestShaking) {
+                    this.stopTestShake();
+                }
+
+                this.throwDetected = true;
+                this.cameraFollowing = true;
+                
+                // Hide boundary box during throw
+                this.boundaryBox.visible = false;
+                
+                if (this.ceiling) {
+                    this.world.removeBody(this.ceiling);
+                    this.ceiling = null;
+                }
+
+                // Vigorous initial shake
+                const shakeSequence = () => {
+                    this.dice.forEach(die => {
+                        die.body.velocity.set(
+                            (Math.random() - 0.5) * 30,  
+                            (Math.random() - 0.5) * 30, 
+                            (Math.random() - 0.5) * 30
+                        );
+                        die.body.angularVelocity.set(
+                            Math.random() * 20 - 10,
+                            Math.random() * 20 - 10,
+                            Math.random() * 20 - 10
+                        );
+                    });
+                };
+
+                const shakeInterval = setInterval(shakeSequence, 50);
+
+                setTimeout(() => {
+                    clearInterval(shakeInterval);
+
+                    // MAIN THROW: Arc trajectory forward and up
+                    this.dice.forEach(die => {
+                        die.body.velocity.set(
+                            (Math.random() - 0.5) * 8,  // Small sideways spread
+                            45,                         // High upward velocity for arc
+                            35                          // Strong forward velocity (positive Z)
+                        );
+                        die.body.angularVelocity.set(
+                            Math.random() * 20 - 10,
+                            Math.random() * 20 - 10,
+                            Math.random() * 20 - 10
+                        );
+                        
+                        // Reduce damping for realistic flight
+                        die.body.linearDamping = 0.02;
+                        die.body.angularDamping = 0.05;
+                    });
+                }, 300);
+            }
+
+            updateDicePositions() {
+                this.dice.forEach(die => {
+                    die.mesh.position.copy(die.body.position);
+                    die.mesh.quaternion.copy(die.body.quaternion);
+                    
+                    if (this.isShaking && !this.throwDetected && !this.isTestShaking && this.accelerationSource === 'device') {
+                        die.body.velocity.lerp(die.targetVelocity, this.smoothAcceleration);
+                    }
+                });
+            }
+
+            updateCamera() {
+                if (!this.cameraFollowing) return;
+                
+                // Calculate average position of dice
+                let avgPosition = new THREE.Vector3(0, 0, 0);
+                this.dice.forEach(die => {
+                    avgPosition.add(die.body.position);
+                });
+                avgPosition.divideScalar(this.dice.length);
+                
+                // Determine camera position based on dice trajectory
+                const diceVelocity = this.dice[0].body.velocity;
+                const diceSpeed = diceVelocity.length();
+                
+                // Dim lights gradually as camera follows
+                const dimFactor = Math.min(1.0, diceSpeed / 20);
+                this.mainLights.forEach(light => {
+                    light.intensity = 0.4 * (1 - dimFactor * 0.6); // Reduce to 40% of original
+                });
+                if (this.directionalLight) {
+                    this.directionalLight.intensity = 0.3 * (1 - dimFactor * 0.5);
+                }
+                
+                if (diceSpeed > 5) { // Dice are moving - follow at distance during arc
+                    // Follow behind and above at greater distance to keep dice in frame
+                    const behindOffset = new THREE.Vector3(-diceVelocity.x, -diceVelocity.y, -diceVelocity.z);
+                    behindOffset.normalize().multiplyScalar(80); // Increased from 50 to 80
+                    behindOffset.y += 30; // Increased height offset from 20 to 30
+                    
+                    this.cameraTarget.copy(avgPosition).add(behindOffset);
+                    this.cameraLookAt.copy(avgPosition);
+                } else {
+                    // When dice are settled: Move directly overhead at good distance
+                    this.cameraTarget.set(avgPosition.x, avgPosition.y + 120, avgPosition.z + 10); // Increased height and slight forward offset
+                    this.cameraLookAt.copy(avgPosition);
+                }
+                
+                // Smoothly interpolate camera position with slower movement for better tracking
+                this.camera.position.lerp(this.cameraTarget, this.cameraFollowSpeed * 0.8); // Slower movement
+                
+                // Smoother, less aggressive look-at transition
+                const targetDirection = new THREE.Vector3();
+                targetDirection.subVectors(this.cameraLookAt, this.camera.position).normalize();
+                
+                // Get current forward direction
+                const currentDirection = new THREE.Vector3();
+                this.camera.getWorldDirection(currentDirection);
+                
+                // Blend directions more gradually
+                currentDirection.lerp(targetDirection, this.cameraRotationSpeed * 0.6); // Reduced rotation speed
+                
+                // Apply the new direction
+                const newLookAt = new THREE.Vector3();
+                newLookAt.addVectors(this.camera.position, currentDirection.multiplyScalar(100));
+                this.camera.lookAt(newLookAt);
+            }
+
+            animate() {
+                requestAnimationFrame(this.animate.bind(this));
+                this.world.step(1/60);
+                this.updateDicePositions();
+                this.updateCamera();
+                this.updateDebugInfo();
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            handleResize() {
+                const aspect = window.innerWidth / window.innerHeight;
+                this.camera.aspect = aspect;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            updateDebugInfo() {
+                const shakeTime = this.isShaking ? Date.now() - this.lastShakeTime : 0;
+                const avgPosition = new THREE.Vector3(0, 0, 0);
+                this.dice.forEach(die => avgPosition.add(die.body.position));
+                if (this.dice.length > 0) avgPosition.divideScalar(this.dice.length);
+                
+                document.getElementById('debug').innerHTML = 
+                    `<strong>MOTION STATUS</strong><br>` +
+                    `Shaking: ${this.isShaking} ${this.isTestShaking ? '(TEST)' : ''}<br>` +
+                    `Source: ${this.accelerationSource}<br>` +
+                    `<br><strong>ACCELERATION</strong><br>` +
+                    `X: ${this.lastAcceleration.x.toFixed(2)}<br>` +
+                    `Y: ${this.lastAcceleration.y.toFixed(2)}<br>` +
+                    `Z: ${this.lastAcceleration.z.toFixed(2)}<br>` +
+                    `<br><strong>CAMERA</strong><br>` +
+                    `Following: ${this.cameraFollowing}<br>` +
+                    `Position: (${this.camera.position.x.toFixed(1)}, ${this.camera.position.y.toFixed(1)}, ${this.camera.position.z.toFixed(1)})<br>` +
+                    `Target: (${this.cameraTarget.x.toFixed(1)}, ${this.cameraTarget.y.toFixed(1)}, ${this.cameraTarget.z.toFixed(1)})<br>` +
+                    `<br><strong>DETECTION</strong><br>` +
+                    `Jerk: ${this.jerk.toFixed(2)}<br>` +
+                    `Shake threshold: ${this.shakeThreshold}<br>` +
+                    `Throw threshold: ${this.throwThreshold}<br>` +
+                    `Current shake time: ${shakeTime}ms<br>` +
+                    `Min shake time: ${this.minShakeTime}ms<br>` +
+                    `<br><strong>COUNTERS</strong><br>` +
+                    `Throws detected: ${this.countThrowsDetected}<br>` +
+                    `Shake count: ${this.countShaking}<br>` +
+                    `Highest shake time: ${this.highestShakeTime}ms<br>` +
+                    `<br><strong>PHYSICS</strong><br>` +
+                    `Throw detected: ${this.throwDetected}<br>` +
+                    `Ceiling exists: ${this.ceiling !== null}<br>` +
+                    `Dice count: ${this.dice.length}<br>` +
+                    `Avg dice pos: (${avgPosition.x.toFixed(1)}, ${avgPosition.y.toFixed(1)}, ${avgPosition.z.toFixed(1)})<br>` +
+                    `${this.dice.length > 0 ? `Dice 0 velocity: (${this.dice[0].body.velocity.x.toFixed(1)}, ${this.dice[0].body.velocity.y.toFixed(1)}, ${this.dice[0].body.velocity.z.toFixed(1)})` : ''}`;
+            }
+        }
+
+        const game = new DiceGame();
+        window.addEventListener('resize', () => game.handleResize());
+    </script>
+</body>
+</html>
