@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dice Motion - Fixed</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden;
+            background: #0000ff;
+        }
+        canvas { 
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+        }
+        #debug {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            font-family: monospace;
+            z-index: 1000;
+            font-size: 12px;
+            max-width: 300px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .motion-button {
+            position: fixed;
+            top: 20px;
+            right: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            z-index: 1000;
+            background: #d32f2f;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .shake-button {
+            position: fixed;
+            top: 70px;
+            right: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            z-index: 1000;
+            background: #2e7d32;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .shake-button.active {
+            background: #ff9800;
+        }
+    </style>
+</head>
+<body>
+    <div id="debug">Waiting for motion...</div>    
+    <button id="testButton" class="motion-button">Test Throw</button>
+    <button id="shakeButton" class="shake-button">Start Shake Test</button>
+    <canvas id="gameCanvas"></canvas>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+    <script>
+        class DiceGame {
+            constructor() {
+                console.log("DiceGame constructor starting...");
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x0000ff);
+                this.dice = [];
+                this.world = new CANNON.World();
+                
+                this.motionHistory = [];
+                this.shakeThreshold = 15; // Increased from 8 to make shake detection less sensitive
+                this.throwThreshold = 15; // Decreased from 25 to make throw detection more sensitive
+                this.minShakeTime = 500; // Increased from 200ms to require longer shake before throw
+                this.isShaking = false;
+                this.shakeStartTime = 0;
+                this.throwDetected = false;
+                this.maxRotationSpeed = 15;
+                this.smoothAcceleration = 0.1; // Reduced from 0.3 to make dice movement less aggressive
+
+                // Debug counters
+                this.countThrowsDetected = 0;
+                this.highestZAcceleration = 0;
+                this.highestShakeTime = 0;
+                this.highestTotalAcceleration = 0;  
+                this.countShaking = 0;
+                this.lastShakeTime = 0;
+                this.currentJerk = 0;
+
+                // Testing variables
+                this.isTestShaking = false;
+                this.testShakeInterval = null;
+                
+                // Enhanced debug tracking
+                this.lastAcceleration = { x: 0, y: 0, z: 0 };
+                this.accelerationSource = 'none';
+                this.debugMotionHistory = [];
+                this.targetVelocityErrors = 0;
+
+                // Box and dice positioning
+                this.viewportHeight = window.innerHeight;
+                this.boxHeight = 16;
+                this.boxY = -30;
+                this.boxDepth = 16;
+                this.boxWidth = 35;
+                this.diceOffsetFromFloor = 5;
+                
+                console.log(`Box dimensions set: width=${this.boxWidth}, depth=${this.boxDepth}, height=${this.boxHeight}`);
+                                
+                console.log("About to initialize scene...");
+                this.initializeScene();
+                console.log("Scene initialized");
+                
+                console.log("About to initialize physics...");
+                this.initializePhysics();
+                console.log("Physics initialized");
+                
+                console.log("About to initialize lights...");
+                this.initializeLights();
+                console.log("Lights initialized");
+                
+                console.log("About to create boundaries...");
+                this.createBoundaries();
+                console.log("Boundaries created");
+                
+                console.log("About to create dice...");
+                try {
+                    // INLINE DICE CREATION - bypass method call
+                    console.log("INLINE: Starting dice creation directly in constructor");
+                    
+                    const diceSize = 10.8; // Was 12, now 10% smaller (12 * 0.9 = 10.8)
+                    console.log("INLINE: diceSize set to", diceSize);
+                    
+                    const geometry = new THREE.BoxGeometry(diceSize, diceSize, diceSize);
+                    console.log("INLINE: geometry created");
+                    
+                    // Create proper dice materials with dots
+                    const materials = this.createDiceMaterial();
+                    console.log("INLINE: dice materials created");
+                    
+                    // Position dice inside the container
+                    const diceY = this.boxY - this.boxHeight/2 + this.diceOffsetFromFloor + diceSize/2;
+                    const spacing = diceSize * 1.2;
+                    
+                    console.log("INLINE: diceY calculated as", diceY);
+                    
+                    // Create physics shape
+                    const shape = new CANNON.Box(new CANNON.Vec3(diceSize/2, diceSize/2, diceSize/2));
+                    console.log("INLINE: physics shape created");
+                    
+                    // Create two large dice with proper positioning and physics
+                    [-spacing/2, spacing/2].forEach((x, i) => {
+                        console.log(`INLINE: Creating die ${i} at x=${x}, y=${diceY}`);
+                        
+                        // Visual mesh
+                        const mesh = new THREE.Mesh(geometry, materials);
+                        mesh.position.set(x, diceY, 0);
+                        mesh.castShadow = true;
+                        mesh.receiveShadow = true;
+                        this.scene.add(mesh);
+                        
+                        // Physics body
+                        const diceBody = new CANNON.Body({
+                            mass: 1,
+                            material: this.physicsMaterial,
+                            shape: shape,
+                            linearDamping: 0.1,
+                            angularDamping: 0.1
+                        });
+                        diceBody.position.set(x, diceY, 0);
+                        this.world.addBody(diceBody);
+                        
+                        // Add to dice array
+                        this.dice.push({
+                            mesh: mesh,
+                            body: diceBody,
+                            targetVelocity: new CANNON.Vec3(0, 0, 0)
+                        });
+                        
+                        console.log(`INLINE: Die ${i} created with dice texture and physics at position (${x}, ${diceY}, 0)`);
+                    });
+                    
+                    console.log("INLINE: All dice created successfully with", this.dice.length, "dice");
+                    console.log("Dice created successfully");
+                } catch (error) {
+                    console.error("Error creating dice inline:", error);
+                    console.error("Error stack:", error.stack);
+                }
+                
+                console.log("About to setup motion handling...");
+                this.setupMotionHandling();
+                console.log("Motion handling setup");
+                
+                console.log("About to setup test buttons...");
+                this.setupTestButton();
+                this.setupShakeTestButton();
+                console.log("Test buttons setup");
+                
+                console.log("About to start animation...");
+                this.animate();
+                console.log("DiceGame constructor complete");
+            }
+
+            initializeScene() {
+                this.renderer = new THREE.WebGLRenderer({ 
+                    canvas: document.getElementById('gameCanvas'),
+                    antialias: true 
+                });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                
+                const aspect = window.innerWidth / window.innerHeight;
+                this.camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
+                this.camera.position.set(0, 0, 100);
+                this.camera.lookAt(0, 0, 0);
+            }
+
+            initializePhysics() {
+                this.world.gravity.set(0, -9.8, 0);
+                this.world.broadphase = new CANNON.NaiveBroadphase();
+                this.world.solver.iterations = 20;
+                this.physicsMaterial = new CANNON.Material({
+                    friction: 0.3,
+                    restitution: 0.6
+                });
+            }
+
+            initializeLights() {
+                this.scene.add(new THREE.AmbientLight(0xffffff, 2.0));
+                const lightPositions = [[-5,3,-5], [5,3,-5], [-5,3,5], [5,3,5]];
+                lightPositions.forEach(pos => {
+                    const light = new THREE.PointLight(0xffffff, 1.0);
+                    light.position.set(...pos);
+                    this.scene.add(light);
+                });
+            }
+
+            createBoundaries() {
+                const wallShape = new CANNON.Plane();
+                const floorY = this.boxY - this.boxHeight/2;
+                const ceilingY = this.boxY + this.boxHeight/2;
+                
+                const walls = [
+                    { pos: [-this.boxWidth/2, this.boxY, 0], rot: [0, Math.PI/2, 0] },
+                    { pos: [this.boxWidth/2, this.boxY, 0], rot: [0, -Math.PI/2, 0] },
+                    { pos: [0, floorY, 0], rot: [-Math.PI/2, 0, 0] },
+                    { pos: [0, this.boxY, -this.boxDepth/2], rot: [0, 0, 0] },
+                    { pos: [0, this.boxY, this.boxDepth/2], rot: [Math.PI, 0, 0] }
+                ];
+
+                walls.forEach(wall => {
+                    const body = new CANNON.Body({ 
+                        mass: 0, 
+                        material: this.physicsMaterial 
+                    });
+                    body.addShape(wallShape);
+                    body.position.set(...wall.pos);
+                    body.quaternion.setFromEuler(...wall.rot);
+                    this.world.addBody(body);
+                });
+
+                this.ceiling = new CANNON.Body({ 
+                    mass: 0, 
+                    material: this.physicsMaterial 
+                });
+                this.ceiling.addShape(wallShape);
+                this.ceiling.position.set(0, ceilingY, 0);
+                this.ceiling.quaternion.setFromEuler(Math.PI/2, 0, 0);
+                this.world.addBody(this.ceiling);
+
+                this.boundaryBox = new THREE.LineSegments(
+                    new THREE.EdgesGeometry(new THREE.BoxGeometry(this.boxWidth, this.boxHeight, this.boxDepth)),
+                    new THREE.LineBasicMaterial({ color: 0xffffff })
+                );
+                this.boundaryBox.position.set(0, this.boxY, 0);
+                this.scene.add(this.boundaryBox);
+            }
+
+            createDice() {
+                const geometry = new THREE.BoxGeometry(2, 2, 2);
+                const shape = new CANNON.Box(new CANNON.Vec3(1, 1, 1));
+                const materials = this.createDiceMaterial();
+
+                const diceY = this.boxY - this.boxHeight/2 + this.diceOffsetFromFloor;
+
+                [-4, 4].forEach((x) => {
+                    const diceMesh = new THREE.Mesh(geometry, materials);
+                    diceMesh.position.set(x, diceY, 0);
+                    this.scene.add(diceMesh);
+
+                    const diceBody = new CANNON.Body({
+                        mass: 1,
+                        material: this.physicsMaterial,
+                        shape: shape,
+                        linearDamping: 0.1,  // Reduced from 0.4 to 0.1
+                        angularDamping: 0.1  // Reduced from 0.4 to 0.1
+                    });
+                    diceBody.position.set(x, diceY, 0);
+                    this.world.addBody(diceBody);
+
+                    this.dice.push({
+                        mesh: diceMesh,
+                        body: diceBody,
+                        targetVelocity: new CANNON.Vec3(0, 0, 0)
+                    });
+                });
+            }
+
+            createDiceMaterial() {
+                const positions = [
+                    [[128, 128]],
+                    [[64, 64], [192, 192]],
+                    [[64, 64], [128, 128], [192, 192]],
+                    [[64, 64], [64, 192], [192, 64], [192, 192]],
+                    [[64, 64], [64, 192], [128, 128], [192, 64], [192, 192]],
+                    [[64, 64], [64, 128], [64, 192], [192, 64], [192, 128], [192, 192]]
+                ];
+
+                return positions.map(dots => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = canvas.height = 256;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#8B0000';
+                    ctx.fillRect(0, 0, 256, 256);
+                    ctx.fillStyle = '#ffffff';
+                    dots.forEach(([x, y]) => {
+                        ctx.beginPath();
+                        ctx.arc(x, y, 24, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                    return new THREE.MeshStandardMaterial({
+                        map: new THREE.CanvasTexture(canvas),
+                        metalness: 0.7,
+                        roughness: 0.2
+                    });
+                });
+            }
+
+            setupMotionHandling() {
+                let lastUpdate = Date.now();
+                const handleMotion = (event) => {
+                    const now = Date.now();
+                    if (now - lastUpdate < 16) return;
+                    lastUpdate = now;
+
+                    if (!event.accelerationIncludingGravity) return;
+
+                    const acceleration = {
+                        x: event.accelerationIncludingGravity.x || 0,
+                        y: event.accelerationIncludingGravity.y || 0,
+                        z: event.accelerationIncludingGravity.z || 0
+                    };
+
+                    // Update debug info immediately
+                    this.lastAcceleration = acceleration;
+                    this.accelerationSource = 'device';
+
+                    // Track motion history and calculate jerk
+                    const totalAcceleration = Math.sqrt(
+                        acceleration.x * acceleration.x +
+                        acceleration.y * acceleration.y +
+                        acceleration.z * acceleration.z
+                    );
+
+                    this.motionHistory.push({
+                        acceleration: totalAcceleration,
+                        timestamp: Date.now()
+                    });
+
+                    if (this.motionHistory.length > 10) {
+                        this.motionHistory.shift();
+                    }
+
+                    if (this.motionHistory.length >= 2) {
+                        const recent = this.motionHistory[this.motionHistory.length - 1];
+                        const previous = this.motionHistory[this.motionHistory.length - 2];
+                        this.currentJerk = Math.abs(recent.acceleration - previous.acceleration);
+                    }
+
+                    // Direct shake detection like working version
+                    const wasShaking = this.isShaking;
+                    this.isShaking = this.currentJerk > this.shakeThreshold;
+                    
+                    if (this.isShaking && !wasShaking) {
+                        this.shakeStartTime = Date.now();
+                        this.countShaking++;
+                    }
+
+                    // Track peaks for debug
+                    this.highestTotalAcceleration = Math.max(this.highestTotalAcceleration, totalAcceleration);
+                    this.highestZAcceleration = Math.max(this.highestZAcceleration, Math.abs(acceleration.z));
+                    
+                    if (this.throwDetected) return;
+
+                    if (this.isShaking) {
+                        // Apply physics directly like the working version
+                        this.dice.forEach((die, index) => {
+                            const force = 50; // Reasonable force level
+                            
+                            // Ensure targetVelocity exists
+                            if (!die.targetVelocity) {
+                                die.targetVelocity = new CANNON.Vec3(0, 0, 0);
+                            }
+                            
+                            // Set target velocities directly
+                            die.targetVelocity.x = acceleration.x * force;
+                            die.targetVelocity.y = Math.abs(acceleration.y) * force / 2;
+                            die.targetVelocity.z = acceleration.z * force / 2;
+                            
+                            // Apply some random rotation for realism
+                            die.body.angularVelocity.set(
+                                (Math.random() - 0.5) * this.maxRotationSpeed,
+                                (Math.random() - 0.5) * this.maxRotationSpeed,
+                                (Math.random() - 0.5) * this.maxRotationSpeed
+                            );
+                        });
+
+                        // Detect throw using the acceleration data
+                        if (event.accelerationIncludingGravity && this.isShaking) {
+                            this.detectThrow(event.accelerationIncludingGravity);
+                        }
+                    }
+                };
+
+                // iOS 13+ requires explicit permission request
+                if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+                    const button = document.createElement('button');
+                    button.textContent = 'Enable Motion';
+                    button.className = 'motion-button';
+                    button.style.right = '120px';
+                    button.style.backgroundColor = '#1976d2';
+                    document.body.appendChild(button);
+                    
+                    button.addEventListener('click', async () => {
+                        try {
+                            console.log('Requesting device motion permission...');
+                            const permission = await DeviceMotionEvent.requestPermission();
+                            console.log('Permission result:', permission);
+                            
+                            if (permission === 'granted') {
+                                console.log('Permission granted, adding event listener...');
+                                window.addEventListener('devicemotion', handleMotion, { passive: false });
+                                button.textContent = 'Motion Enabled ✓';
+                                button.style.backgroundColor = '#2e7d32';
+                                button.disabled = true;
+                                
+                                // Test that motion is working
+                                setTimeout(() => {
+                                    console.log('Motion should be active now');
+                                }, 1000);
+                            } else {
+                                console.log('Permission denied');
+                                button.textContent = 'Permission Denied';
+                                button.style.backgroundColor = '#d32f2f';
+                            }
+                        } catch (error) {
+                            console.error('Motion permission error:', error);
+                            button.textContent = 'Error: ' + error.message;
+                            button.style.backgroundColor = '#d32f2f';
+                        }
+                    });
+                } else {
+                    // For older browsers or non-iOS devices
+                    console.log('Adding device motion listener directly (no permission required)');
+                    window.addEventListener('devicemotion', handleMotion, { passive: false });
+                    
+                    // Add a status indicator
+                    const indicator = document.createElement('div');
+                    indicator.textContent = 'Motion Active (No Permission Required)';
+                    indicator.style.position = 'fixed';
+                    indicator.style.top = '20px';
+                    indicator.style.right = '120px';
+                    indicator.style.padding = '10px';
+                    indicator.style.backgroundColor = '#2e7d32';
+                    indicator.style.color = 'white';
+                    indicator.style.borderRadius = '5px';
+                    indicator.style.fontSize = '12px';
+                    indicator.style.zIndex = '1000';
+                    document.body.appendChild(indicator);
+                }
+            }
+
+            // Keep the processMotionData method for test scenarios only
+            processMotionDataForTests(acceleration, source) {
+                console.log(`processMotionData called: source=${source}, isShaking=${this.isShaking}, isTestShaking=${this.isTestShaking}`);
+                
+                this.lastAcceleration = acceleration;
+                this.accelerationSource = source;
+                
+                this.debugMotionHistory.push({
+                    time: Date.now(),
+                    acceleration: {...acceleration},
+                    source: source
+                });
+                
+                if (this.debugMotionHistory.length > 20) {
+                    this.debugMotionHistory.shift();
+                }
+
+                const totalAccel = Math.sqrt(acceleration.x**2 + acceleration.y**2 + acceleration.z**2);
+                this.highestTotalAcceleration = Math.max(this.highestTotalAcceleration, totalAccel);
+                this.highestZAcceleration = Math.max(this.highestZAcceleration, Math.abs(acceleration.z));
+
+                const wasShaking = this.isShaking;
+                this.isShaking = this.detectShake(acceleration);
+                
+                console.log(`After detectShake: isShaking=${this.isShaking}, wasShaking=${wasShaking}`);
+                
+                if (this.isShaking && !wasShaking) {
+                    this.shakeStartTime = Date.now();
+                    this.countShaking++;
+                }
+
+                if (this.throwDetected) {
+                    console.log(`Skipping physics - throwDetected=${this.throwDetected}`);
+                    return;
+                }
+
+                console.log(`About to check physics condition: isShaking=${this.isShaking}, source=${source}`);
+
+                // Apply physics during test shake
+                if (this.isShaking && source === 'test_shake') {
+                    console.log(`Applying physics: isShaking=${this.isShaking}, source=${source}`);
+                    this.dice.forEach((die, index) => {
+                        try {
+                            // Apply random forces in all directions for realistic shake
+                            const force = 3.0;
+                            die.body.velocity.x += (Math.random() - 0.5) * force;
+                            die.body.velocity.y += (Math.random() - 0.5) * force;
+                            die.body.velocity.z += (Math.random() - 0.5) * force;
+                            
+                            // Add very fast random angular velocity for aggressive spinning during shake
+                            const spinForce = 15;
+                            die.body.angularVelocity.x += (Math.random() - 0.5) * spinForce;
+                            die.body.angularVelocity.y += (Math.random() - 0.5) * spinForce;
+                            die.body.angularVelocity.z += (Math.random() - 0.5) * spinForce;
+                            
+                            if (index === 0) {
+                                console.log(`Applied shake force to die 0 - velocity: (${die.body.velocity.x.toFixed(1)}, ${die.body.velocity.y.toFixed(1)}, ${die.body.velocity.z.toFixed(1)})`);
+                            }
+                        } catch (error) {
+                            this.targetVelocityErrors++;
+                            console.error(`Error setting target velocity for die ${index}:`, error, die);
+                        }
+                    });
+                }
+            }
+
+            processMotionData(acceleration, source) {
+                console.log(`processMotionData called: source=${source}, isShaking=${this.isShaking}, isTestShaking=${this.isTestShaking}`);
+                
+                this.lastAcceleration = acceleration;
+                this.accelerationSource = source;
+                
+                this.debugMotionHistory.push({
+                    time: Date.now(),
+                    acceleration: {...acceleration},
+                    source: source
+                });
+                
+                if (this.debugMotionHistory.length > 20) {
+                    this.debugMotionHistory.shift();
+                }
+
+                const totalAccel = Math.sqrt(acceleration.x**2 + acceleration.y**2 + acceleration.z**2);
+                this.highestTotalAcceleration = Math.max(this.highestTotalAcceleration, totalAccel);
+                this.highestZAcceleration = Math.max(this.highestZAcceleration, Math.abs(acceleration.z));
+
+                const wasShaking = this.isShaking;
+                this.isShaking = this.detectShake(acceleration);
+                
+                console.log(`After detectShake: isShaking=${this.isShaking}, wasShaking=${wasShaking}`);
+                
+                if (this.isShaking && !wasShaking) {
+                    this.shakeStartTime = Date.now();
+                    this.countShaking++;
+                }
+
+                if (this.throwDetected) {
+                    console.log(`Skipping physics - throwDetected=${this.throwDetected}`);
+                    return;
+                }
+
+                console.log(`About to check physics condition: isShaking=${this.isShaking}, source=${source}, condition=${this.isShaking && (source === 'device' || source === 'test_shake')}`);
+
+                // Apply physics during real device motion AND during shake test (but not throw test)
+                if (this.isShaking && (source === 'device' || source === 'test_shake')) {
+                    console.log(`Applying physics: isShaking=${this.isShaking}, source=${source}`);
+                    this.dice.forEach((die, index) => {
+                        try {
+                            // For test shake, apply forces directly like Test Throw does
+                            if (source === 'test_shake') {
+                                // Apply random forces in all directions for realistic shake
+                                const force = 3.0;
+                                die.body.velocity.x += (Math.random() - 0.5) * force; // Random left/right
+                                die.body.velocity.y += (Math.random() - 0.5) * force; // Random up/down
+                                die.body.velocity.z += (Math.random() - 0.5) * force; // Random forward/back
+                                
+                                // Add very fast random angular velocity for aggressive spinning during shake
+                                const spinForce = 15; // Increased from 8 to 15 for much faster rotation
+                                die.body.angularVelocity.x += (Math.random() - 0.5) * spinForce;
+                                die.body.angularVelocity.y += (Math.random() - 0.5) * spinForce;
+                                die.body.angularVelocity.z += (Math.random() - 0.5) * spinForce;
+                                
+                                if (index === 0) {
+                                    console.log(`Applied shake force to die 0 - velocity: (${die.body.velocity.x.toFixed(1)}, ${die.body.velocity.y.toFixed(1)}, ${die.body.velocity.z.toFixed(1)}) angular: (${die.body.angularVelocity.x.toFixed(1)}, ${die.body.angularVelocity.y.toFixed(1)}, ${die.body.angularVelocity.z.toFixed(1)})`);
+                                }
+                            } else {
+                                // For real device motion, use the target velocity system with reduced force
+                                const force = 15; // Reduced from 50 to make movement less aggressive
+                                
+                                // Ensure targetVelocity exists and is properly initialized
+                                if (!die.targetVelocity || typeof die.targetVelocity.x === 'undefined') {
+                                    die.targetVelocity = new CANNON.Vec3(0, 0, 0);
+                                }
+                                
+                                // Check if targetVelocity is valid before setting
+                                if (die.targetVelocity && typeof die.targetVelocity.x !== 'undefined') {
+                                    die.targetVelocity.x = acceleration.x * force * 0.5; // Further reduced
+                                    die.targetVelocity.y = Math.abs(acceleration.y) * force * 0.3; // Further reduced
+                                    die.targetVelocity.z = acceleration.z * force * 0.4; // Further reduced
+                                }
+                            }
+                        } catch (error) {
+                            this.targetVelocityErrors++;
+                            console.error(`Error setting target velocity for die ${index}:`, error, die);
+                        }
+                    });
+                } else {
+                    console.log(`NOT applying physics: isShaking=${this.isShaking}, source=${source}, condition=${this.isShaking && (source === 'device' || source === 'test_shake')}`);
+                }
+            }
+
+            setupTestButton() {
+                document.getElementById('testButton').addEventListener('click', () => {
+                    this.executeThrow();
+                });
+            }
+
+            setupShakeTestButton() {
+                const shakeButton = document.getElementById('shakeButton');
+                
+                shakeButton.addEventListener('click', () => {
+                    if (this.isTestShaking) {
+                        this.stopTestShake();
+                    } else {
+                        this.startTestShake();
+                    }
+                });
+            }
+
+            startTestShake() {
+                this.isTestShaking = true;
+                this.isShaking = true; // Force shaking state during test
+                this.shakeStartTime = Date.now();
+                this.countShaking++;
+                
+                // Reset throw state so shake test can work after test throw
+                this.throwDetected = false;
+                console.log("Reset throwDetected to false for shake test");
+                
+                const shakeButton = document.getElementById('shakeButton');
+                shakeButton.textContent = 'Stop Shake Test';
+                shakeButton.classList.add('active');
+
+                // Reset dice to original positions before starting shake
+                this.resetDicePositions();
+                
+                // Start the shake simulation
+                this.testShakeInterval = setInterval(() => {
+                    const time = Date.now() * 0.01;
+                    const shakeIntensity = 12;
+                    
+                    // Create back-and-forth oscillating motion
+                    const fakeAcceleration = {
+                        x: Math.sin(time) * shakeIntensity + (Math.random() - 0.5) * 4,
+                        y: Math.cos(time * 1.3) * shakeIntensity + (Math.random() - 0.5) * 4,
+                        z: 9.8 + Math.sin(time * 0.7) * 2
+                    };
+
+                    // Process the simulated motion data using the test-specific method
+                    this.processMotionDataForTests(fakeAcceleration, 'test_shake');
+                    
+                    // Force shaking state to remain true during test
+                    this.isShaking = true;
+                }, 50);
+            }
+
+            resetDicePositions() {
+                console.log("Resetting dice to original positions...");
+                
+                // Calculate original positions
+                const diceSize = 10.8;
+                const diceY = this.boxY - this.boxHeight/2 + this.diceOffsetFromFloor + diceSize/2;
+                const spacing = diceSize * 1.2;
+                const positions = [-spacing/2, spacing/2];
+                
+                // Re-add ceiling if it was removed during throw
+                if (!this.ceiling || this.ceiling === null) {
+                    console.log("Re-adding ceiling for shake test");
+                    const wallShape = new CANNON.Plane();
+                    this.ceiling = new CANNON.Body({ 
+                        mass: 0, 
+                        material: this.physicsMaterial 
+                    });
+                    this.ceiling.addShape(wallShape);
+                    const ceilingY = this.boxY + this.boxHeight/2;
+                    this.ceiling.position.set(0, ceilingY, 0);
+                    this.ceiling.quaternion.setFromEuler(Math.PI/2, 0, 0);
+                    this.world.addBody(this.ceiling);
+                } else {
+                    console.log("Ceiling already exists, not re-adding");
+                }
+                
+                this.dice.forEach((die, index) => {
+                    if (die.body && die.mesh) {
+                        // Reset physics body position and velocities
+                        die.body.position.set(positions[index], diceY, 0);
+                        die.body.velocity.set(0, 0, 0);
+                        die.body.angularVelocity.set(0, 0, 0);
+                        
+                        // Reset visual mesh position
+                        die.mesh.position.copy(die.body.position);
+                        die.mesh.quaternion.set(0, 0, 0, 1); // Reset rotation
+                        
+                        // Reset target velocity
+                        if (die.targetVelocity) {
+                            die.targetVelocity.set(0, 0, 0);
+                        }
+                        
+                        console.log(`Die ${index} reset to position (${positions[index]}, ${diceY}, 0)`);
+                    }
+                });
+                
+                console.log("All dice reset to original positions");
+            }
+
+            stopTestShake() {
+                this.isTestShaking = false;
+                this.isShaking = false;
+                
+                const shakeButton = document.getElementById('shakeButton');
+                shakeButton.textContent = 'Start Shake Test';
+                shakeButton.classList.remove('active');
+
+                if (this.testShakeInterval) {
+                    clearInterval(this.testShakeInterval);
+                    this.testShakeInterval = null;
+                }
+
+                // Reset motion state
+                this.currentJerk = 0;
+                this.accelerationSource = 'none';
+                this.lastAcceleration = { x: 0, y: 0, z: 0 };
+            }
+
+            detectShake(acceleration) {
+                // For test shake, always return true and bypass normal detection
+                if (this.isTestShaking) {
+                    // Calculate jerk for display purposes but always return true
+                    const totalAcceleration = Math.sqrt(
+                        acceleration.x * acceleration.x +
+                        acceleration.y * acceleration.y +
+                        acceleration.z * acceleration.z
+                    );
+
+                    this.motionHistory.push({
+                        acceleration: totalAcceleration,
+                        timestamp: Date.now()
+                    });
+
+                    if (this.motionHistory.length > 10) {
+                        this.motionHistory.shift();
+                    }
+
+                    if (this.motionHistory.length >= 2) {
+                        const recent = this.motionHistory[this.motionHistory.length - 1];
+                        const previous = this.motionHistory[this.motionHistory.length - 2];
+                        this.currentJerk = Math.abs(recent.acceleration - previous.acceleration);
+                    }
+
+                    console.log(`detectShake (test mode): returning true, jerk=${this.currentJerk.toFixed(2)}`);
+                    return true; // Always return true during test shake
+                }
+
+                // Normal shake detection for real device motion
+                const totalAcceleration = Math.sqrt(
+                    acceleration.x * acceleration.x +
+                    acceleration.y * acceleration.y +
+                    acceleration.z * acceleration.z
+                );
+
+                this.motionHistory.push({
+                    acceleration: totalAcceleration,
+                    timestamp: Date.now()
+                });
+
+                if (this.motionHistory.length > 10) {
+                    this.motionHistory.shift();
+                }
+
+                if (this.motionHistory.length >= 2) {
+                    const recent = this.motionHistory[this.motionHistory.length - 1];
+                    const previous = this.motionHistory[this.motionHistory.length - 2];
+                    this.currentJerk = Math.abs(recent.acceleration - previous.acceleration);
+                }
+
+                const result = this.currentJerk > this.shakeThreshold;
+                console.log(`detectShake (normal mode): jerk=${this.currentJerk.toFixed(2)}, threshold=${this.shakeThreshold}, returning=${result}`);
+                return result;
+            }
+
+            detectThrow(acceleration) {
+                if (!this.isShaking || this.throwDetected) return;
+
+                const now = Date.now();
+                const shakeTime = now - this.shakeStartTime;
+                
+                this.highestShakeTime = Math.max(this.highestShakeTime, shakeTime);
+
+                if (shakeTime < this.minShakeTime) return;
+
+                // Improved throw detection - look for sudden deceleration (negative Z acceleration)
+                // or strong positive Z acceleration indicating forward thrust then stop
+                const zAccel = acceleration.z || 0;
+                const totalAccel = Math.sqrt(acceleration.x**2 + acceleration.y**2 + acceleration.z**2);
+                
+                // Detect throw by looking for strong total acceleration OR strong Z movement
+                if (Math.abs(zAccel) > this.throwThreshold || totalAccel > 20) {
+                    console.log(`Throw detected! Z accel: ${zAccel.toFixed(2)}, Total accel: ${totalAccel.toFixed(2)}`);
+                    this.countThrowsDetected++;
+                    this.executeThrow();
+                }
+            }
+
+            executeThrow() {
+                if (this.isTestShaking) {
+                    this.stopTestShake();
+                }
+
+                this.throwDetected = true;
+                
+                if (this.ceiling) {
+                    this.world.removeBody(this.ceiling);
+                    this.ceiling = null; // Make sure it's set to null for proper detection
+                }
+
+                this.dice.forEach(die => {
+                    die.body.velocity.set(
+                        (Math.random() - 0.5) * 20,  
+                        (Math.random() - 0.5) * 20, 
+                        (Math.random() - 0.5) * 20
+                    );
+                });
+
+                setTimeout(() => {
+                    this.dice.forEach(die => {
+                        die.body.velocity.set(
+                            (Math.random() - 0.5) * 15,
+                            60,
+                            -40
+                        );
+                        die.body.angularVelocity.set(
+                            Math.random() * 20 - 10,
+                            Math.random() * 20 - 10,
+                            Math.random() * 20 - 10
+                        );
+                    });
+                }, 300);
+            }
+
+            updateDicePositions() {
+                this.dice.forEach((die, index) => {
+                    die.mesh.position.copy(die.body.position);
+                    die.mesh.quaternion.copy(die.body.quaternion);
+                    
+                    // Apply target velocity system for REAL device motion only (not test scenarios)
+                    if (this.isShaking && !this.throwDetected && !this.isTestShaking && 
+                        die.targetVelocity && typeof die.targetVelocity.x !== 'undefined' && 
+                        this.accelerationSource === 'device') {
+                        try {
+                            // Check if body.velocity exists, if not create it
+                            if (!die.body.velocity || typeof die.body.velocity.x === 'undefined') {
+                                die.body.velocity = new CANNON.Vec3(0, 0, 0);
+                            }
+                            
+                            // Apply forces directly instead of lerp to avoid undefined issues
+                            const lerpFactor = this.smoothAcceleration;
+                            die.body.velocity.x += (die.targetVelocity.x - die.body.velocity.x) * lerpFactor;
+                            die.body.velocity.y += (die.targetVelocity.y - die.body.velocity.y) * lerpFactor;
+                            die.body.velocity.z += (die.targetVelocity.z - die.body.velocity.z) * lerpFactor;
+                            
+                            // Debug: log when we're applying forces during real device motion
+                            if (index === 0) {
+                                console.log(`updateDicePositions: Applied manual lerp (device) - target(${die.targetVelocity.x.toFixed(1)}, ${die.targetVelocity.y.toFixed(1)}, ${die.targetVelocity.z.toFixed(1)}) current(${die.body.velocity.x.toFixed(1)}, ${die.body.velocity.y.toFixed(1)}, ${die.body.velocity.z.toFixed(1)})`);
+                            }
+                        } catch (error) {
+                            console.error(`Error in updateDicePositions for die ${index}:`, error, die);
+                            console.error(`Die body:`, die.body);
+                            console.error(`Die body velocity:`, die.body.velocity);
+                        }
+                    } else if (this.isTestShaking && index === 0) {
+                        // During test shake, just log the current velocity (should be set by direct manipulation)
+                        console.log(`updateDicePositions: Test shake mode - current velocity(${die.body.velocity.x.toFixed(1)}, ${die.body.velocity.y.toFixed(1)}, ${die.body.velocity.z.toFixed(1)})`);
+                    }
+                });
+            }
+
+            animate() {
+                requestAnimationFrame(this.animate.bind(this));
+                this.world.step(1/60);
+                this.updateDicePositions();
+                this.updateDebugInfo();
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            handleResize() {
+                const aspect = window.innerWidth / window.innerHeight;
+                this.camera.aspect = aspect;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            updateDebugInfo() {
+                const shakeTime = this.isShaking ? Date.now() - this.shakeStartTime : 0;
+                
+                document.getElementById('debug').innerHTML = 
+                    `<strong>MOTION STATUS</strong><br>` +
+                    `Shaking: ${this.isShaking} ${this.isTestShaking ? '(TEST)' : ''}<br>` +
+                    `Current shake time: ${shakeTime}ms<br>` +
+                    `Source: ${this.accelerationSource}<br>` +
+                    `<br><strong>CURRENT ACCELERATION</strong><br>` +
+                    `X: ${this.lastAcceleration.x.toFixed(2)}<br>` +
+                    `Y: ${this.lastAcceleration.y.toFixed(2)}<br>` +
+                    `Z: ${this.lastAcceleration.z.toFixed(2)}<br>` +
+                    `<br><strong>DETECTION</strong><br>` +
+                    `Current jerk: ${this.currentJerk.toFixed(2)}<br>` +
+                    `Shake threshold: ${this.shakeThreshold}<br>` +
+                    `Throws detected: ${this.countThrowsDetected}<br>` +
+                    `<br><strong>PHYSICS DEBUG</strong><br>` +
+                    `Applying physics: ${this.isShaking && !this.throwDetected}<br>` +
+                    `Dice 0 velocity: (${this.dice.length > 0 ? this.dice[0].body.velocity.x.toFixed(1) : 'N/A'}, ${this.dice.length > 0 ? this.dice[0].body.velocity.y.toFixed(1) : 'N/A'}, ${this.dice.length > 0 ? this.dice[0].body.velocity.z.toFixed(1) : 'N/A'})<br>` +
+                    `Dice 0 position: (${this.dice.length > 0 ? this.dice[0].body.position.x.toFixed(1) : 'N/A'}, ${this.dice.length > 0 ? this.dice[0].body.position.y.toFixed(1) : 'N/A'}, ${this.dice.length > 0 ? this.dice[0].body.position.z.toFixed(1) : 'N/A'})<br>` +
+                    `Target velocity: (${this.dice.length > 0 && this.dice[0].targetVelocity ? this.dice[0].targetVelocity.x.toFixed(1) : 'N/A'}, ${this.dice.length > 0 && this.dice[0].targetVelocity ? this.dice[0].targetVelocity.y.toFixed(1) : 'N/A'}, ${this.dice.length > 0 && this.dice[0].targetVelocity ? this.dice[0].targetVelocity.z.toFixed(1) : 'N/A'})<br>` +
+                    `<br><strong>PEAKS</strong><br>` +
+                    `Total acceleration peak: ${this.highestTotalAcceleration.toFixed(2)}<br>` +
+                    `Z acceleration peak: ${this.highestZAcceleration.toFixed(2)}<br>` +
+                    `Longest shake: ${this.highestShakeTime}ms<br>` +
+                    `Shake count: ${this.countShaking}<br>` +
+                    `<br><strong>ERRORS</strong><br>` +
+                    `Target velocity errors: ${this.targetVelocityErrors}<br>` +
+                    `Motion history entries: ${this.debugMotionHistory.length}`;
+            }
+        }
+
+        const game = new DiceGame();
+        window.addEventListener('resize', () => game.handleResize());
+    </script>
+</body>
+</html>
