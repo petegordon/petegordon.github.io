@@ -122,6 +122,7 @@
                 this.hapticActive = false;
                 this.isTestingHaptic = false;
                 this.hapticTestInterval = null;
+                this.hapticLogs = []; // Store haptic debug logs
 
                 // Camera following system - IMPROVED
                 this.cameraFollowing = false;
@@ -156,36 +157,43 @@
                 this.animate();
             }
 
+            // Add haptic log message (visible on screen)
+            addHapticLog(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                this.hapticLogs.push(`[${timestamp}] ${message}`);
+                // Keep only last 8 logs
+                if (this.hapticLogs.length > 8) {
+                    this.hapticLogs.shift();
+                }
+                console.log(message); // Also log to console
+            }
+
             // Check if haptic/vibration is supported
             checkHapticSupport() {
-                if ('vibrate' in navigator) {
-                    console.log('Haptic feedback supported');
-                    return true;
-                }
-                console.log('Haptic feedback not supported');
-                return false;
+                const supported = 'vibrate' in navigator;
+                this.addHapticLog(`Vibrate API: ${supported ? 'AVAILABLE' : 'NOT AVAILABLE'}`);
+                return supported;
             }
 
             // Trigger haptic feedback with a pattern
             triggerHaptic(pattern) {
-                console.log('triggerHaptic called with pattern:', pattern);
-                console.log('hapticSupported:', this.hapticSupported);
+                const patternStr = Array.isArray(pattern) ? `[${pattern.join(',')}]` : pattern;
+                this.addHapticLog(`Trigger: ${patternStr}ms`);
 
                 if (this.hapticSupported) {
                     try {
                         const result = navigator.vibrate(pattern);
-                        console.log('navigator.vibrate() returned:', result);
+                        this.addHapticLog(`vibrate() returned: ${result}`);
                         this.hapticActive = true;
                         const duration = Array.isArray(pattern) ? pattern.reduce((a, b) => a + b, 0) : pattern;
-                        console.log('Vibration duration:', duration);
                         setTimeout(() => {
                             this.hapticActive = false;
                         }, duration);
                     } catch (e) {
-                        console.error('Haptic trigger failed:', e);
+                        this.addHapticLog(`ERROR: ${e.message}`);
                     }
                 } else {
-                    console.log('Haptic not supported - skipping vibration');
+                    this.addHapticLog('Not supported - skipped');
                 }
             }
 
@@ -582,18 +590,14 @@
                 hapticButton.textContent = 'Stop Haptic';
                 hapticButton.classList.add('active');
 
-                console.log('Starting haptic test...');
-                console.log('Haptic supported:', this.hapticSupported);
-                console.log('Navigator.vibrate available:', 'vibrate' in navigator);
+                this.addHapticLog('=== TEST STARTED ===');
 
                 // Trigger immediate STRONG vibration to test - much longer
-                console.log('Triggering 500ms vibration');
                 this.triggerHaptic(500); // Single strong 500ms vibration
 
                 // Set up repeating vibration pattern - much stronger
                 this.hapticTestInterval = setInterval(() => {
                     // Strong repeating pattern: 300ms vibrate, 200ms pause, 300ms vibrate
-                    console.log('Triggering pattern vibration');
                     this.triggerHaptic([300, 200, 300, 200, 300]);
                 }, 2000); // Every 2 seconds
             }
@@ -1015,6 +1019,8 @@
                     `Supported: ${this.hapticSupported ? 'YES' : 'NO'}<br>` +
                     `Active: ${this.hapticActive ? 'YES' : 'NO'}<br>` +
                     `Testing: ${this.isTestingHaptic ? 'YES' : 'NO'}<br>` +
+                    `<br><strong>HAPTIC LOG</strong><br>` +
+                    `${this.hapticLogs.length > 0 ? this.hapticLogs.join('<br>') : 'No events yet'}<br>` +
                     `<br><strong>MOTION STATUS</strong><br>` +
                     `Shaking: ${this.isShaking} ${this.isTestShaking ? '(TEST)' : ''}<br>` +
                     `Source: ${this.accelerationSource}<br>` +
