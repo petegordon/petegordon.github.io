@@ -116,13 +116,13 @@
                 this.lastAcceleration = { x: 0, y: 0, z: 0 };
 
                 // Haptic feedback support
+                this.hapticLogs = []; // Initialize FIRST before calling checkHapticSupport
                 this.hapticSupported = this.checkHapticSupport();
                 this.lastShakeHaptic = 0;
                 this.hapticShakeInterval = null;
                 this.hapticActive = false;
                 this.isTestingHaptic = false;
                 this.hapticTestInterval = null;
-                this.hapticLogs = []; // Store haptic debug logs
 
                 // Camera following system - IMPROVED
                 this.cameraFollowing = false;
