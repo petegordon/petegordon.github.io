@@ -56,12 +56,29 @@
         .shake-button.active {
             background: #ff9800;
         }
+        .haptic-button {
+            position: fixed;
+            top: 120px;
+            right: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            z-index: 1000;
+            background: #673ab7;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .haptic-button.active {
+            background: #ff5722;
+        }
     </style>
 </head>
 <body>
     <div id="debug">Waiting for motion...</div>
     <button id="testButton" class="motion-button">Test Throw</button>
     <button id="shakeButton" class="shake-button">Start Shake Test</button>
+    <button id="hapticButton" class="haptic-button">Test Haptic</button>
     <canvas id="gameCanvas"></canvas>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
@@ -103,6 +120,8 @@
                 this.lastShakeHaptic = 0;
                 this.hapticShakeInterval = null;
                 this.hapticActive = false;
+                this.isTestingHaptic = false;
+                this.hapticTestInterval = null;
 
                 // Camera following system - IMPROVED
                 this.cameraFollowing = false;
@@ -133,6 +152,7 @@
                 this.setupMotionHandling();
                 this.setupTestButton();
                 this.setupShakeTestButton();
+                this.setupHapticTestButton();
                 this.animate();
             }
 
@@ -534,6 +554,48 @@
                         this.startTestShake();
                     }
                 });
+            }
+
+            setupHapticTestButton() {
+                const hapticButton = document.getElementById('hapticButton');
+
+                hapticButton.addEventListener('click', () => {
+                    if (this.isTestingHaptic) {
+                        this.stopHapticTest();
+                    } else {
+                        this.startHapticTest();
+                    }
+                });
+            }
+
+            startHapticTest() {
+                this.isTestingHaptic = true;
+                const hapticButton = document.getElementById('hapticButton');
+                hapticButton.textContent = 'Stop Haptic';
+                hapticButton.classList.add('active');
+
+                // Trigger immediate strong vibration to test
+                this.triggerHaptic(200); // Single 200ms vibration
+
+                // Set up repeating vibration pattern
+                this.hapticTestInterval = setInterval(() => {
+                    // Alternating pattern: short-long-short
+                    this.triggerHaptic([100, 100, 200, 100, 100]);
+                }, 1000); // Every second
+            }
+
+            stopHapticTest() {
+                this.isTestingHaptic = false;
+                const hapticButton = document.getElementById('hapticButton');
+                hapticButton.textContent = 'Test Haptic';
+                hapticButton.classList.remove('active');
+
+                if (this.hapticTestInterval) {
+                    clearInterval(this.hapticTestInterval);
+                    this.hapticTestInterval = null;
+                }
+
+                this.stopHaptic();
             }
 
             startTestShake() {
@@ -938,6 +1000,7 @@
                     `<strong>HAPTICS</strong><br>` +
                     `Supported: ${this.hapticSupported ? 'YES' : 'NO'}<br>` +
                     `Active: ${this.hapticActive ? 'YES' : 'NO'}<br>` +
+                    `Testing: ${this.isTestingHaptic ? 'YES' : 'NO'}<br>` +
                     `<br><strong>MOTION STATUS</strong><br>` +
                     `Shaking: ${this.isShaking} ${this.isTestShaking ? '(TEST)' : ''}<br>` +
                     `Source: ${this.accelerationSource}<br>` +
