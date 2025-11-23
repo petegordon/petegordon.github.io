@@ -168,16 +168,24 @@
 
             // Trigger haptic feedback with a pattern
             triggerHaptic(pattern) {
+                console.log('triggerHaptic called with pattern:', pattern);
+                console.log('hapticSupported:', this.hapticSupported);
+
                 if (this.hapticSupported) {
                     try {
-                        navigator.vibrate(pattern);
+                        const result = navigator.vibrate(pattern);
+                        console.log('navigator.vibrate() returned:', result);
                         this.hapticActive = true;
+                        const duration = Array.isArray(pattern) ? pattern.reduce((a, b) => a + b, 0) : pattern;
+                        console.log('Vibration duration:', duration);
                         setTimeout(() => {
                             this.hapticActive = false;
-                        }, Array.isArray(pattern) ? pattern.reduce((a, b) => a + b, 0) : pattern);
+                        }, duration);
                     } catch (e) {
-                        console.log('Haptic trigger failed:', e);
+                        console.error('Haptic trigger failed:', e);
                     }
+                } else {
+                    console.log('Haptic not supported - skipping vibration');
                 }
             }
 
@@ -574,14 +582,20 @@
                 hapticButton.textContent = 'Stop Haptic';
                 hapticButton.classList.add('active');
 
-                // Trigger immediate strong vibration to test
-                this.triggerHaptic(200); // Single 200ms vibration
+                console.log('Starting haptic test...');
+                console.log('Haptic supported:', this.hapticSupported);
+                console.log('Navigator.vibrate available:', 'vibrate' in navigator);
 
-                // Set up repeating vibration pattern
+                // Trigger immediate STRONG vibration to test - much longer
+                console.log('Triggering 500ms vibration');
+                this.triggerHaptic(500); // Single strong 500ms vibration
+
+                // Set up repeating vibration pattern - much stronger
                 this.hapticTestInterval = setInterval(() => {
-                    // Alternating pattern: short-long-short
-                    this.triggerHaptic([100, 100, 200, 100, 100]);
-                }, 1000); // Every second
+                    // Strong repeating pattern: 300ms vibrate, 200ms pause, 300ms vibrate
+                    console.log('Triggering pattern vibration');
+                    this.triggerHaptic([300, 200, 300, 200, 300]);
+                }, 2000); // Every 2 seconds
             }
 
             stopHapticTest() {
