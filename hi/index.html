@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>ᚺᛁ · You found it</title>
+  <meta name="description" content="You decoded the runes and read the binary. Here is how to say hi to Pete.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230b0d12'/%3E%3Ctext x='32' y='46' font-size='40' text-anchor='middle' fill='%23f2b544' font-family='serif'%3E%E1%9A%BA%E1%9B%81%3C/text%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: #0b0d12;
+      --bg-2: #11141c;
+      --panel: #151924;
+      --line: #262c3a;
+      --text: #e8e6df;
+      --muted: #9aa0ad;
+      --accent: #f2b544;
+      --accent-ink: #1a1304;
+      --accent-soft: rgba(242, 181, 68, 0.14);
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f6f3ec;
+        --bg-2: #efeadf;
+        --panel: #ffffff;
+        --line: #ddd6c6;
+        --text: #1b1a17;
+        --muted: #6b6760;
+        --accent: #b36b00;
+        --accent-ink: #fff8ea;
+        --accent-soft: rgba(179, 107, 0, 0.12);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: radial-gradient(ellipse at top, var(--bg-2), var(--bg) 60%);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.55;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* faint runic texture in the background */
+    .runefield {
+      position: fixed; inset: 0; z-index: 0;
+      overflow: hidden; pointer-events: none;
+      font-family: var(--serif);
+      font-size: 42px; line-height: 1.9;
+      letter-spacing: 0.4em;
+      color: var(--text);
+      opacity: 0.045;
+      word-break: break-all;
+      padding: 1rem;
+      user-select: none;
+    }
+
+    main {
+      position: relative; z-index: 1;
+      width: 100%;
+      max-width: 620px;
+      padding: 10vh 16px 4rem;
+    }
+
+    .glyph {
+      font-family: var(--serif);
+      font-size: clamp(5rem, 22vw, 8.5rem);
+      line-height: 1;
+      color: var(--accent);
+      text-align: center;
+      margin: 0 0 0.25rem;
+      letter-spacing: 0.08em;
+      text-shadow: 0 0 40px var(--accent-soft);
+    }
+    .glyph-caption {
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      margin: 0 0 2.5rem;
+    }
+
+    h1 {
+      font-family: var(--serif);
+      font-weight: 500;
+      font-size: clamp(1.7rem, 5vw, 2.3rem);
+      line-height: 1.2;
+      margin: 0 0 1rem;
+      text-align: center;
+    }
+    .lede {
+      text-align: center;
+      color: var(--muted);
+      font-size: 1.05rem;
+      margin: 0 auto 2.5rem;
+      max-width: 46ch;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+    .label {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0 0 0.5rem;
+    }
+    .row {
+      display: flex;
+      gap: 0.6rem;
+      align-items: stretch;
+      flex-wrap: wrap;
+    }
+    .field {
+      flex: 1 1 220px;
+      font-family: var(--mono);
+      font-size: 1.05rem;
+      padding: 0.8rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: var(--text);
+      overflow-x: auto;
+      white-space: nowrap;
+      user-select: all;
+    }
+    .field.subject { color: var(--accent); font-weight: 600; letter-spacing: 0.04em; }
+
+    button, .btn {
+      font: inherit;
+      font-weight: 600;
+      padding: 0.8rem 1.1rem;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--bg-2);
+      color: var(--text);
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: transform .08s ease, background .15s ease;
+      min-width: 6.5rem;
+    }
+    button:hover, .btn:hover { background: var(--line); }
+    button:active, .btn:active { transform: translateY(1px); }
+    .btn.primary {
+      background: var(--accent);
+      color: var(--accent-ink);
+      border-color: transparent;
+      width: 100%;
+      margin-top: 1.25rem;
+      font-size: 1.05rem;
+      padding: 1rem;
+    }
+    .btn.primary:hover { filter: brightness(1.06); background: var(--accent); }
+
+    .divider {
+      margin: 1.5rem 0;
+      border: 0;
+      border-top: 1px solid var(--line);
+    }
+
+    ol.ask {
+      margin: 0.25rem 0 0;
+      padding-left: 1.3rem;
+      color: var(--muted);
+    }
+    ol.ask li { margin: 0.35rem 0; }
+    ol.ask strong { color: var(--text); font-weight: 600; }
+
+    .note {
+      margin: 2rem 0 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .note a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent-soft); }
+
+    .about {
+      margin-top: 1.25rem;
+      padding: 1.5rem;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--accent-soft);
+    }
+    .about h2 {
+      font-family: var(--serif);
+      font-weight: 500;
+      font-size: 1.35rem;
+      margin: 0.25rem 0 0.75rem;
+      line-height: 1.25;
+    }
+    .about p { margin: 0 0 0.9rem; }
+    .about p:last-child { margin-bottom: 0; }
+    .about a.link {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+      border-bottom: 1px solid var(--accent);
+    }
+    .about .hf {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      margin-top: 0.25rem;
+      padding: 0.6rem 0.95rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .about .hf:hover { border-color: var(--accent); }
+    .about .hf code {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 0.9em;
+      color: var(--accent);
+    }
+    .about .signoff {
+      font-family: var(--serif);
+      font-size: 1.12rem;
+      color: var(--text);
+      margin-top: 1.1rem;
+    }
+
+    footer {
+      position: relative; z-index: 1;
+      margin-top: auto;
+      padding: 1.5rem 16px 2rem;
+      text-align: center;
+      font-family: var(--serif);
+      font-size: 1.25rem;
+      letter-spacing: 0.25em;
+      color: var(--muted);
+      opacity: 0.7;
+    }
+
+    .toast {
+      position: fixed; left: 50%; bottom: 1.5rem;
+      transform: translate(-50%, 20px);
+      background: var(--text); color: var(--bg);
+      padding: 0.6rem 1rem; border-radius: 999px;
+      font-size: 0.9rem; font-weight: 600;
+      opacity: 0; pointer-events: none;
+      transition: opacity .2s ease, transform .2s ease;
+      z-index: 5;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="runefield" aria-hidden="true" id="runefield"></div>
+
+  <main>
+    <p class="glyph" aria-label="hi, written in runes">ᚺᛁ</p>
+    <p class="glyph-caption">01101000 01101001</p>
+
+    <h1>You read the runes.<br>You decoded the binary.<br>Now say hi.</h1>
+    <p class="lede">
+      Almost nobody gets this far. Send me an email with the subject line below
+      and I will know exactly how you found me, and I will write back.
+    </p>
+
+    <section class="card" aria-labelledby="how">
+      <p class="label" id="how">Send to</p>
+      <div class="row">
+        <div class="field" id="email">pete@petegordon.com</div>
+        <button type="button" data-copy="email">Copy</button>
+      </div>
+
+      <p class="label" style="margin-top:1.25rem">Subject line, exactly</p>
+      <div class="row">
+        <div class="field subject" id="subject">I read the runes</div>
+        <button type="button" data-copy="subject">Copy</button>
+      </div>
+
+      <a class="btn primary" id="mailto" href="mailto:pete@petegordon.com?subject=I%20read%20the%20runes&body=Hi%20Pete%2C%0A%0AI%20found%20the%20runes%20on%20your%20LinkedIn%20profile%20and%20decoded%20my%20way%20here.%0A%0AWho%20I%20am%3A%20%0AHow%20I%20cracked%20it%3A%20%0AHow%20long%20it%20took%3A%20%0A%0A">
+        Open a pre-filled email ↗
+      </a>
+
+      <hr class="divider">
+
+      <p class="label">What to include</p>
+      <ol class="ask">
+        <li><strong>Who you are</strong> and where you found the runes.</li>
+        <li><strong>How you cracked it.</strong> By hand, a script, an AI, a hunch?</li>
+        <li><strong>How long it took.</strong> I am keeping an informal leaderboard.</li>
+      </ol>
+    </section>
+
+    <section class="about" aria-labelledby="about-h">
+      <p class="label">While you are here</p>
+      <h2 id="about-h">Open models, open weights, open data.</h2>
+      <p>
+        I spend a lot of my time in natural language processing and large language models,
+        and lately most of it with <strong>Olmo 3</strong>, Ai2's fully open model family.
+        Not just open weights: the training data, code, and checkpoints are all published,
+        so you can see how the whole thing was built and build on it yourself.
+      </p>
+      <p>
+        My current project is a text embedding model for retrieval, fine-tuned from the
+        Olmo 3 7B base with LoRA and a contrastive loss, released under Apache 2.0 on Hugging Face.
+      </p>
+      <a class="hf" href="https://huggingface.co/petegordon/olmo3-embed-7b" target="_blank" rel="noopener">
+        🤗 <code>petegordon/olmo3-embed-7b</code> ↗
+      </a>
+      <p class="signoff">
+        I look forward to talking with you about the depths of AI, NLP, ML, and our new world on the Internet.
+      </p>
+    </section>
+
+    <p class="note">
+      The glyphs above are <em>hi</em> in Elder Futhark, and the caption is <em>hi</em> in 8-bit ASCII.
+      You have done enough decoding. The subject line is plain English.
+    </p>
+  </main>
+
+  <footer aria-label="well done, written in runes">ᚹᛖᛚᛚ ᛞᛟᚾᛖ</footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">Copied</div>
+
+  <script>
+    (function () {
+      // Background texture: "you found it" repeated in runes.
+      var runes = "ᛇᛟᚢ ᚠᛟᚢᚾᛞ ᛁᛏ ";
+      var field = document.getElementById("runefield");
+      field.textContent = runes.repeat(260);
+
+      var toast = document.getElementById("toast");
+      var timer;
+      function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add("show");
+        clearTimeout(timer);
+        timer = setTimeout(function () { toast.classList.remove("show"); }, 1600);
+      }
+
+      function copyText(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          return navigator.clipboard.writeText(text);
+        }
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); } catch (e) {}
+        document.body.removeChild(ta);
+        return Promise.resolve();
+      }
+
+      document.querySelectorAll("[data-copy]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var el = document.getElementById(btn.getAttribute("data-copy"));
+          var text = el.textContent.trim();
+          copyText(text).then(function () {
+            showToast("Copied: " + text);
+            btn.textContent = "Copied";
+            setTimeout(function () { btn.textContent = "Copy"; }, 1400);
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
